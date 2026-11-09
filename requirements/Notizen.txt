@@ -13,3 +13,13 @@ to write it to the YAML so you can commit it.
 Enable the module masquerade:
 ?> ddev drush en masquerade -y
 
+
+Add two user:
+?> ddev drush user:create alice --mail=alice@example.com --password=alice
+?> ddev drush user:create bob   --mail=bob@example.com   --password=bob
+?> ddev drush user:create tom   --mail=tom@example.com   --password=tom
+
+Clear cache and add new columns
+?> ddev drush cr #clear cache so Drupal sees the new code
+?> ddev drush updb -y #runs the update hook, adds the columns
+

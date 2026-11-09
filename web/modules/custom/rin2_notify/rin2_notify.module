@@ -4,3 +4,54 @@
  * @file
  * Hooks for the RIN2 Notifications module.
  */
+
+declare(strict_types=1);
+
+use Drupal\Core\Entity\EntityTypeInterface;
+use Drupal\Core\Field\BaseFieldDefinition;
+use Drupal\Core\StringTranslation\TranslatableMarkup;
+
+/**
+ * Implements hook_entity_base_field_info().
+ */
+function rin2_notify_entity_base_field_info(EntityTypeInterface $entity_type): array {
+  if ($entity_type->id() !== 'user') {
+    return [];
+  }
+  return rin2_notify_user_base_field_definitions();
+}
+
+/**
+ * Returns the base field definitions this module adds to the user entity.
+ *
+ * Shared by hook_entity_base_field_info() (fresh installs) and
+ * rin2_notify_update_11001() (existing sites with users already stored).
+ *
+ * @return \Drupal\Core\Field\BaseFieldDefinition[]
+ *   Field definitions keyed by field name.
+ */
+function rin2_notify_user_base_field_definitions(): array {
+  $fields = [];
+
+  // NOT NULL column. Existing users get the initial value when the column is
+  // added; new users get the default value.
+  $fields['notifications_enabled'] = BaseFieldDefinition::create('boolean')
+    ->setLabel(new TranslatableMarkup('On-screen notifications'))
+    ->setDescription(new TranslatableMarkup('Show notifications to this user on screen.'))
+    ->setDefaultValue(TRUE)
+    ->setInitialValue(TRUE)
+    ->setStorageRequired(TRUE)
+    ->setRequired(TRUE)
+    ->setDisplayConfigurable('form', TRUE)
+    ->setDisplayConfigurable('view', TRUE);
+
+  // Nullable column. Stored in E.164 format, e.g. +393331234567.
+  $fields['phone'] = BaseFieldDefinition::create('string')
+    ->setLabel(new TranslatableMarkup('Mobile phone'))
+    ->setDescription(new TranslatableMarkup('Mobile number in international format.'))
+    ->setSetting('max_length', 32)
+    ->setDisplayConfigurable('form', TRUE)
+    ->setDisplayConfigurable('view', TRUE);
+
+  return $fields;
+}

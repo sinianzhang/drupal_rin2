@@ -1,0 +1,21 @@
+<?php
+
+/**
+ * @file
+ * Install and update hooks for the RIN2 Notifications module.
+ */
+
+declare(strict_types=1);
+
+/**
+ * Add notifications_enabled (NOT NULL) and phone (nullable) to users.
+ */
+function rin2_notify_update_11001(): string {
+  $manager = \Drupal::entityDefinitionUpdateManager();
+  foreach (rin2_notify_user_base_field_definitions() as $name => $definition) {
+    if (!$manager->getFieldStorageDefinition($name, 'user')) {
+      $manager->installFieldStorageDefinition($name, 'user', 'rin2_notify', $definition);
+    }
+  }
+  return (string) t('Added notifications_enabled and phone fields to users.');
+}
