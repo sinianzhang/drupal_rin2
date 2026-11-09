@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 A Drupal 11 site built from the `drupal/recommended-project` Composer template and run locally with DDEV. It is currently a near-empty scaffold: there are no custom modules or themes yet, and the site is not under git.
 
-The project goal is in `requirements/`: `Web app with Notifications.pdf` (the spec) and `Notizen.txt` (setup notes, which point to the DDEV Drupal 11 quickstart). Read the PDF before building features. It needs a PDF tool such as `poppler-utils`, which is not installed in this environment.
+The project rebuilds a Laravel coding assignment ("Web app with Notifications", code name RIN2) in Drupal 11. The spec is `requirements/Web app with Notifications.pdf`. The step-by-step build plan, open decisions and progress log are in `requirements/PLAN.md`. Read it before starting work and keep its checkboxes and progress log up to date.
 
 ## Environment
 
