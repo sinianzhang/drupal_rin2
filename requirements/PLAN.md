@@ -61,7 +61,7 @@ How to use this file: work through the steps in order. Each step ends with **Don
 
 ## Step 3: Custom module and the users-table "migration"
 
-- [ ] Scaffold `rin2_notify` (`.info.yml`, `.module`, `.permissions.yml`, `.routing.yml`, `.services.yml`)
+- [x] Scaffold `rin2_notify` (`.info.yml`, `.module`), enabled; `.install`, `.permissions.yml`, `.routing.yml`, `.services.yml` are added in the steps that need them
 - [ ] Add two **base fields on User** in `hook_entity_base_field_info()`:
   - `notifications_enabled`: boolean, **required (NOT NULL)**, default `TRUE`
   - `phone`: string/telephone, **nullable**
