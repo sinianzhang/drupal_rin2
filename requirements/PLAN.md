@@ -37,8 +37,8 @@ How to use this file: work through the steps in order. Each step ends with **Don
 
 ## Step 1: Repository and dev tooling
 
-- [ ] `git init`, first commit of the current scaffold (`.gitignore`, `CLAUDE.md`, `composer.*`, `.ddev/config.yaml`, `settings.php`, `config/sync/.gitkeep`)
-- [ ] `ddev composer require --dev drupal/core-dev`: PHPUnit, PHPCS + Drupal standard, PHPStan
+- [x] `git init`, first commit of the current scaffold (`.gitignore`, `CLAUDE.md`, `composer.*`, `.ddev/config.yaml`, `settings.php`, `config/sync/.gitkeep`)
+- [x] `ddev composer require --dev drupal/core-dev`: PHPUnit, PHPCS + Drupal standard, PHPStan
 - [ ] Add `phpcs.xml.dist` (standard `Drupal,DrupalPractice`, path `web/modules/custom`)
 - [ ] Add `phpunit.xml` setup for running tests inside DDEV (DB URL, base URL)
 - [ ] Export current site config: `ddev drush cex -y`
@@ -184,3 +184,4 @@ How to use this file: work through the steps in order. Each step ends with **Don
 | Date | Step | Notes |
 |---|---|---|
 | 2026-11-09 | Setup | DDEV + Drupal 11.4 installed, `.gitignore`, config sync → `config/sync`, `CLAUDE.md` |
+| 2026-11-09 | 1 | git repo created and pushed to github.com/sinianzhang/drupal_rin2 (public); DB host port fixed to 59002 |
