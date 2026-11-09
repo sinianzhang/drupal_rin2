@@ -1,0 +1,2 @@
+create a default project from composer: https://docs.ddev.com/en/stable/users/quickstart/#drupal-drupal-11
+

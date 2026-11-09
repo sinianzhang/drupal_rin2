@@ -1,0 +1,57 @@
+# Composer-managed dependencies (rebuilt with `ddev composer install`)
+/vendor/
+/web/core/
+/web/modules/contrib/
+/web/themes/contrib/
+/web/profiles/contrib/
+/web/libraries/
+/drush/Commands/contrib/
+
+# Drupal scaffold files (rewritten by drupal/core-composer-scaffold)
+/web/.csslintrc
+/web/.eslintignore
+/web/.eslintrc.json
+/web/.ht.router.php
+/web/.htaccess
+/web/INSTALL.txt
+/web/README.md
+/web/autoload.php
+/web/autoload_runtime.php
+/web/example.gitignore
+/web/index.php
+/web/robots.txt
+/web/update.php
+/web/web.config
+/web/sites/README.txt
+/web/sites/development.services.yml
+/web/sites/example.settings.local.php
+/web/sites/example.sites.php
+/web/sites/default/default.services.yml
+/web/sites/default/default.settings.php
+/web/modules/README.txt
+/web/themes/README.txt
+/web/profiles/README.txt
+/recipes/README.txt
+
+# User-uploaded files, generated assets, private files, test output
+/web/sites/*/files/
+/web/sites/*/private/
+/web/sites/simpletest/
+
+# Local-only settings (settings.php itself IS committed; DDEV keeps secrets in settings.ddev.php)
+/web/sites/*/settings.local.php
+/web/sites/*/services.local.yml
+
+# Database dumps
+*.sql
+*.sql.gz
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+
+# Claude Code local settings
+.claude/settings.local.json
