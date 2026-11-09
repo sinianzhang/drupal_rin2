@@ -48,15 +48,16 @@ How to use this file: work through the steps in order. Each step ends with **Don
 **Commits:** `first commit`, `fixed db port local`, `Add dev tooling (drupal/core-dev), phpunit, phpcs, phpstan`, `Add phpcs config and PHPUnit environment for DDEV`, `[TASK] add all yml-files`
 **Notes:** `core-dev` needed `-W` (downgrades `sebastian/diff` 7.0.1 → 6.0.2, allowed by core). `web/themes/custom` dropped from phpcs targets (no custom theme planned; phpcs errors on missing paths).
 
-## Step 2: Contrib dependencies
+## Step 2: Contrib dependencies ✅
 
-- [ ] `ddev composer require drupal/masquerade` (2.2.x, Drupal 11 compatible), enable
-- [ ] `ddev composer require giggsey/libphonenumber-for-php` (9.x)
-- [ ] `ddev composer require --dev drupal/devel` (optional; for debugging)
-- [ ] Grant masquerade permission to the admin role only
+- [x] `ddev composer require drupal/masquerade` (2.2.0 installed), enabled
+- [x] `ddev composer require giggsey/libphonenumber-for-php` (9.0.43 installed)
+- [x] `ddev composer require --dev drupal/devel` (5.5.0 installed in `require-dev`; downloaded but **not enabled**, so enable it only when needed for debugging)
+- [x] Masquerade permission for the admin role only: `administrator` has `is_admin: true`, so it gets all permissions automatically. No other role (`anonymous`, `authenticated`, `content_editor`) has `masquerade as any user` / `masquerade as super user`
 
-**Done when:** an admin can masquerade as another user and switch back.
-**Commits:** `Add masquerade module`, `Add libphonenumber library`
+**Done when:** ✅ masquerade enabled (`core.extension.yml`), `/unmasquerade` route exists, ✅ only `administrator` holds masquerade permissions, ✅ libphonenumber loads and validates `+393331234567`, ✅ `ddev drush config:status` → no differences.
+**Commits:** `[TASK] add packages masquerade libphonenumber and devel`, `[TASK] add module and setting for masquerade`
+**Manual check (still worth doing once):** log in as admin (`ddev drush uli`) → `/admin/people` → masquerade as another user → "Switch back" (`/unmasquerade`). Seeded users arrive in Step 5; before that, create one with `ddev drush user:create demo --password=demo`.
 
 ## Step 3: Custom module and the users-table "migration"
 
@@ -188,3 +189,4 @@ How to use this file: work through the steps in order. Each step ends with **Don
 | 2026-11-09 | Setup | DDEV + Drupal 11.4 installed, `.gitignore`, config sync → `config/sync`, `CLAUDE.md` |
 | 2026-11-09 | 1 | git repo created and pushed to github.com/sinianzhang/drupal_rin2 (public); DB host port fixed to 59002 |
 | 2026-11-09 | 1 ✅ | Step 1 complete: dev tooling installed, phpcs + PHPUnit env configured, baseline config exported (137 items), site renamed |
+| 2026-11-09 | 2 ✅ | masquerade 2.2.0 enabled (admin-only via is_admin), libphonenumber 9.0.43, devel 5.5.0 (dev, not enabled) |

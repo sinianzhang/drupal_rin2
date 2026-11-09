@@ -9,3 +9,7 @@ Database → file:
 you change something in the admin UI (for this one, Configuration → Basic site settings), then run
 ?> ddev drush cex -y 
 to write it to the YAML so you can commit it.
+
+Enable the module masquerade:
+?> ddev drush en masquerade -y
+
