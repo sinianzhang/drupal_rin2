@@ -39,8 +39,8 @@ How to use this file: work through the steps in order. Each step ends with **Don
 
 - [x] `git init`, first commit of the current scaffold (`.gitignore`, `CLAUDE.md`, `composer.*`, `.ddev/config.yaml`, `settings.php`, `config/sync/.gitkeep`)
 - [x] `ddev composer require --dev drupal/core-dev`: PHPUnit, PHPCS + Drupal standard, PHPStan
-- [ ] Add `phpcs.xml.dist` (standard `Drupal,DrupalPractice`, path `web/modules/custom`)
-- [ ] Add `phpunit.xml` setup for running tests inside DDEV (DB URL, base URL)
+- [x] Add `phpcs.xml.dist` (standard `Drupal,DrupalPractice`, path `web/modules/custom`)
+- [x] PHPUnit env for DDEV: `SIMPLETEST_DB`, `SIMPLETEST_BASE_URL`, `BROWSERTEST_OUTPUT_DIRECTORY` in `.ddev/config.yaml` `web_environment` (no `phpunit.xml` copy; core's `web/core/phpunit.xml.dist` is used via `-c web/core`)
 - [ ] Export current site config: `ddev drush cex -y`
 
 **Done when:** `ddev exec vendor/bin/phpcs` and `ddev exec vendor/bin/phpunit -c web/core --list-tests` both run.

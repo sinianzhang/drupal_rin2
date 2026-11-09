@@ -11,7 +11,10 @@ database:
     version: "11.8"
 use_dns_when_possible: true
 composer_version: "2"
-web_environment: []
+web_environment:
+    - SIMPLETEST_DB=mysql://db:db@db/db
+    - SIMPLETEST_BASE_URL=http://web
+    - BROWSERTEST_OUTPUT_DIRECTORY=/var/www/html/web/sites/simpletest/browser_output
 corepack_enable: true
 
 # Key features of DDEV's config.yaml:
