@@ -35,16 +35,18 @@ How to use this file: work through the steps in order. Each step ends with **Don
 
 ---
 
-## Step 1: Repository and dev tooling
+## Step 1: Repository and dev tooling ✅
 
 - [x] `git init`, first commit of the current scaffold (`.gitignore`, `CLAUDE.md`, `composer.*`, `.ddev/config.yaml`, `settings.php`, `config/sync/.gitkeep`)
 - [x] `ddev composer require --dev drupal/core-dev`: PHPUnit, PHPCS + Drupal standard, PHPStan
 - [x] Add `phpcs.xml.dist` (standard `Drupal,DrupalPractice`, path `web/modules/custom`)
 - [x] PHPUnit env for DDEV: `SIMPLETEST_DB`, `SIMPLETEST_BASE_URL`, `BROWSERTEST_OUTPUT_DIRECTORY` in `.ddev/config.yaml` `web_environment` (no `phpunit.xml` copy; core's `web/core/phpunit.xml.dist` is used via `-c web/core`)
-- [ ] Export current site config: `ddev drush cex -y`
+- [x] Site name set to "RIN2 Notifications" (was Drush's placeholder "Drush Site-Install")
+- [x] Export current site config: `ddev drush cex -y` (137 config items → `config/sync/`)
 
-**Done when:** `ddev exec vendor/bin/phpcs` and `ddev exec vendor/bin/phpunit -c web/core --list-tests` both run.
-**Commits:** `Initial Drupal 11 scaffold`, `Add dev tooling (core-dev, phpcs config)`, `Export baseline site configuration`
+**Done when:** ✅ `ddev exec vendor/bin/phpcs` exits 0, ✅ test env vars present in the container, ✅ `ddev drush config:status` → "No differences between DB and sync directory".
+**Commits:** `first commit`, `fixed db port local`, `Add dev tooling (drupal/core-dev), phpunit, phpcs, phpstan`, `Add phpcs config and PHPUnit environment for DDEV`, `[TASK] add all yml-files`
+**Notes:** `core-dev` needed `-W` (downgrades `sebastian/diff` 7.0.1 → 6.0.2, allowed by core). `web/themes/custom` dropped from phpcs targets (no custom theme planned; phpcs errors on missing paths).
 
 ## Step 2: Contrib dependencies
 
@@ -185,3 +187,4 @@ How to use this file: work through the steps in order. Each step ends with **Don
 |---|---|---|
 | 2026-11-09 | Setup | DDEV + Drupal 11.4 installed, `.gitignore`, config sync → `config/sync`, `CLAUDE.md` |
 | 2026-11-09 | 1 | git repo created and pushed to github.com/sinianzhang/drupal_rin2 (public); DB host port fixed to 59002 |
+| 2026-11-09 | 1 ✅ | Step 1 complete: dev tooling installed, phpcs + PHPUnit env configured, baseline config exported (137 items), site renamed |
