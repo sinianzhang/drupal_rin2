@@ -1,2 +1,11 @@
 create a default project from composer: https://docs.ddev.com/en/stable/users/quickstart/#drupal-drupal-11
 
+File → database: 
+you edit the YAML (or pull it from git), then run
+?> ddev drush cim -y 
+to apply it to the site.
+
+Database → file:
+you change something in the admin UI (for this one, Configuration → Basic site settings), then run
+?> ddev drush cex -y 
+to write it to the YAML so you can commit it.
