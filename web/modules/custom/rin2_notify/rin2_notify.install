@@ -19,3 +19,20 @@ function rin2_notify_update_11001(): string {
   }
   return (string) t('Added notifications_enabled and phone fields to users.');
 }
+
+/**
+ * Add the NOT NULL constraint to users_field_data.notifications_enabled.
+ */
+function rin2_notify_update_11002(): string {
+  // Update 11001 created the column as nullable because core ignores
+  // isStorageRequired() for shared tables. Rin2UserStorageSchema now declares
+  // the constraint; re-applying the field definition lets core alter the
+  // column (it refuses if any row holds NULL). Field schema updates run with
+  // the last-installed entity type, so record the new handler class first.
+  $manager = \Drupal::entityDefinitionUpdateManager();
+  $manager->updateEntityType(\Drupal::entityTypeManager()->getDefinition('user'));
+  $definition = \Drupal::service('entity_field.manager')
+    ->getFieldStorageDefinitions('user')['notifications_enabled'];
+  $manager->updateFieldStorageDefinition($definition);
+  return (string) t('Made users_field_data.notifications_enabled NOT NULL.');
+}

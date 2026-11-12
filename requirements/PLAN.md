@@ -59,17 +59,20 @@ How to use this file: work through the steps in order. Each step ends with **Don
 **Commits:** `[TASK] add packages masquerade libphonenumber and devel`, `[TASK] add module and setting for masquerade`
 **Manual check (still worth doing once):** log in as admin (`ddev drush uli`) → `/admin/people` → masquerade as another user → "Switch back" (`/unmasquerade`). Seeded users arrive in Step 5; before that, create one with `ddev drush user:create demo --password=demo`.
 
-## Step 3: Custom module and the users-table "migration"
+## Step 3: Custom module and the users-table "migration" ✅
 
 - [x] Scaffold `rin2_notify` (`.info.yml`, `.module`), enabled; `.install`, `.permissions.yml`, `.routing.yml`, `.services.yml` are added in the steps that need them
-- [ ] Add two **base fields on User** in `hook_entity_base_field_info()`:
-  - `notifications_enabled`: boolean, **required (NOT NULL)**, default `TRUE`
-  - `phone`: string/telephone, **nullable**
-- [ ] `hook_update_N()` that installs the field definitions on an existing site and backfills `notifications_enabled = 1` for existing users. This mirrors "the table is already migrated, seeded and in production".
-- [ ] Design note `web/modules/custom/rin2_notify/docs/users-migration.md`: why base fields + update hook, compared with Field UI config fields
+- [x] Add two **base fields on User** in `hook_entity_base_field_info()` (definitions in `rin2_notify_user_base_field_definitions()`):
+  - `notifications_enabled`: boolean, **NOT NULL**, default `TRUE`, initial value `TRUE`
+  - `phone`: string (max 32, E.164), **nullable**
+- [x] `rin2_notify_update_11001()`: installs both fields on the existing table; `setInitialValue(TRUE)` backfills existing users with `1`. This mirrors "the table is already migrated, seeded and in production".
+- [x] `rin2_notify_update_11002()` + `src/Rin2UserStorageSchema.php` + `hook_entity_type_alter()`: core ignores `setStorageRequired()` for shared tables (drupal.org/node/2841291), so 11001 left the column nullable; this adds NOT NULL the way core does for the user `name` column
+- [x] Design note `web/modules/custom/rin2_notify/docs/users-migration.md`
 
-**Done when:** on a site with existing users, `ddev drush updb -y` adds the columns, and `ddev drush sqlq "DESCRIBE users_field_data"` shows `notifications_enabled NOT NULL` and `phone NULL`.
-**Commits:** `Scaffold rin2_notify module`, `Add notifications_enabled and phone fields to users with update hook`
+**Done when:** ✅ `SHOW CREATE TABLE users_field_data` → `notifications_enabled tinyint(4) NOT NULL`, `phone varchar(32) DEFAULT NULL`; ✅ existing users backfilled with `1`; ✅ raw `SET notifications_enabled = NULL` rejected (error 1048); ✅ `updatedb:status` clean, entity definitions up to date; ✅ phpcs clean.
+**Commits:** `Scaffold rin2_notify module`, `[TASK] 2 new fields in user table`, + NOT NULL fix (11002) and design note (to commit)
+**Open:** fresh-install path (NOT NULL without running updates) not yet verified, so add a kernel test in Step 4/11.
+**Local data:** demo users `alice`, `bob`, `tom` created by hand (uid 2–4); Step 5 seeding will replace them.
 
 ## Step 4: Notification entity and read tracking
 
@@ -190,3 +193,4 @@ How to use this file: work through the steps in order. Each step ends with **Don
 | 2026-11-09 | 1 | git repo created and pushed to github.com/sinianzhang/drupal_rin2 (public); DB host port fixed to 59002 |
 | 2026-11-09 | 1 ✅ | Step 1 complete: dev tooling installed, phpcs + PHPUnit env configured, baseline config exported (137 items), site renamed |
 | 2026-11-09 | 2 ✅ | masquerade 2.2.0 enabled (admin-only via is_admin), libphonenumber 9.0.43, devel 5.5.0 (dev, not enabled) |
+| 2026-11-09 | 3 ✅ | rin2_notify module; users.notifications_enabled (NOT NULL, via custom storage schema, updates 11001+11002) and users.phone (nullable); design note |

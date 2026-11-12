@@ -13,6 +13,16 @@ to write it to the YAML so you can commit it.
 Enable the module masquerade:
 ?> ddev drush en masquerade -y
 
+Debug with dpm 1), 2) 3)
+1) Install and enable developer tool devel
+?> ddev composer require --dev drupal/devel
+?> ddev drush en devel -y
+
+2) load settings.local.php in settings.php
+
+3) dpm runs defaultly for admin, OR for anonymous user
+?> ddev drush role:perm:add anonymous 'access devel information'
+?> ddev drush role:perm:remove anonymous 'access devel information'
 
 Add two user:
 ?> ddev drush user:create alice --mail=alice@example.com --password=alice

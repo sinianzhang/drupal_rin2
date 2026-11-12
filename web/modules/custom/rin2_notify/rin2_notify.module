@@ -10,6 +10,16 @@ declare(strict_types=1);
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Field\BaseFieldDefinition;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
+use Drupal\rin2_notify\Rin2UserStorageSchema;
+
+/**
+ * Implements hook_entity_type_alter().
+ */
+function rin2_notify_entity_type_alter(array &$entity_types): void {
+  // Enforce NOT NULL on users_field_data.notifications_enabled.
+  /** @var \Drupal\Core\Entity\EntityTypeInterface[] $entity_types */
+  $entity_types['user']->setHandlerClass('storage_schema', Rin2UserStorageSchema::class);
+}
 
 /**
  * Implements hook_entity_base_field_info().
