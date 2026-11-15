@@ -85,4 +85,23 @@ interface NotificationManagerInterface {
    */
   public function isRead(NotificationInterface $notification, AccountInterface $user): bool;
 
+  /**
+   * Counts how many users have read each notification.
+   *
+   * @param int[]|string[] $notification_ids
+   *   Notification IDs.
+   *
+   * @return int[]
+   *   Read counts keyed by notification ID; 0 for unread notifications.
+   */
+  public function getReadCounts(array $notification_ids): array;
+
+  /**
+   * Returns who has read a notification, most recent first.
+   *
+   * @return int[]
+   *   Read times (Unix timestamps) keyed by user ID.
+   */
+  public function getReaders(NotificationInterface $notification): array;
+
 }

@@ -6,6 +6,7 @@ namespace Drupal\Tests\rin2_notify\Kernel;
 
 use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Core\Cache\Cache;
+use Drupal\Core\Database\Connection;
 use Drupal\Core\Database\IntegrityConstraintViolationException;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\Tests\user\Traits\UserCreationTrait;
@@ -123,6 +124,35 @@ final class NotificationManagerTest extends KernelTestBase {
     $this->assertSame(['for bob', 'old for all'], $this->visibleMessages($this->bob));
     $this->assertSame([], $this->manager->getVisibleFor(User::getAnonymousUser()));
     $this->assertSame(0, $this->manager->countUnreadFor(User::getAnonymousUser()));
+  }
+
+  /**
+   * A notification can go to several users; others do not see it.
+   */
+  public function testSeveralRecipients(): void {
+    $carol = $this->createUser([], 'carol');
+    $notification = Notification::create([
+      'type' => 'system',
+      'message' => 'for alice and bob',
+      'expires' => self::NOW + 3600,
+      'target_uid' => [$this->alice->id(), $this->bob->id()],
+    ]);
+    $notification->save();
+    $this->post('for all', age: 10);
+
+    $this->assertSame(['for alice and bob', 'for all'], $this->visibleMessages($this->alice));
+    $this->assertSame(['for alice and bob', 'for all'], $this->visibleMessages($this->bob));
+    $this->assertSame(['for all'], $this->visibleMessages($carol));
+    $this->assertSame(2, $this->manager->countUnreadFor($this->bob));
+    $this->assertSame(1, $this->manager->countUnreadFor($carol));
+    $this->assertTrue($this->manager->isVisibleTo($notification, $this->bob));
+    $this->assertFalse($this->manager->isVisibleTo($notification, $carol));
+    $this->assertFalse($this->manager->markRead($notification, $carol));
+
+    // Max-age follows only notifications the user can see.
+    $this->post('soon for carol', expires_in: 30, target: $carol);
+    $this->assertSame(3600, $this->manager->getCacheableMetadataFor($this->alice)->getCacheMaxAge());
+    $this->assertSame(30, $this->manager->getCacheableMetadataFor($carol)->getCacheMaxAge());
   }
 
   /**
@@ -264,6 +294,67 @@ final class NotificationManagerTest extends KernelTestBase {
       ->fields(['notifications_enabled' => NULL])
       ->condition('uid', $this->alice->id())
       ->execute();
+  }
+
+  /**
+   * Read counts are grouped per notification, with 0 for unread ones.
+   */
+  public function testGetReadCounts(): void {
+    $first = $this->post('first');
+    $second = $this->post('second');
+    $this->manager->markRead($first, $this->alice);
+    $this->manager->markRead($first, $this->bob);
+
+    $this->assertSame(
+      [(int) $first->id() => 2, (int) $second->id() => 0],
+      $this->manager->getReadCounts([$first->id(), $second->id()]),
+    );
+    $this->assertSame([], $this->manager->getReadCounts([]));
+  }
+
+  /**
+   * Readers are listed with their read time, most recent first.
+   */
+  public function testGetReaders(): void {
+    $notification = $this->post('for all');
+    $this->assertSame([], $this->manager->getReaders($notification));
+    $this->manager->markRead($notification, $this->alice);
+    $this->database()->update('rin2_notification_read')
+      ->fields(['read_at' => self::NOW - 60])
+      ->condition('uid', $this->alice->id())
+      ->execute();
+    $this->manager->markRead($notification, $this->bob);
+    $this->assertSame([
+      (int) $this->bob->id() => self::NOW,
+      (int) $this->alice->id() => self::NOW - 60,
+    ], $this->manager->getReaders($notification));
+  }
+
+  /**
+   * New notifications must expire in the future; saved ones are not checked.
+   */
+  public function testExpiresInFutureConstraint(): void {
+    $messages = function (int $expires_in): array {
+      $notification = Notification::create([
+        'type' => 'system',
+        'message' => 'x',
+        'expires' => self::NOW + $expires_in,
+      ]);
+      return array_map(static fn ($v): string => (string) $v->getMessage(), iterator_to_array($notification->validate()));
+    };
+    $this->assertSame([], $messages(60));
+    $this->assertSame(['The expiration must be in the future.'], $messages(0));
+    $this->assertSame(['The expiration must be in the future.'], $messages(-60));
+
+    // An existing notification that has since expired still validates.
+    $this->assertCount(0, $this->post('old', expires_in: -60)->validate());
+  }
+
+  /**
+   * Returns the database connection.
+   */
+  private function database(): Connection {
+    return $this->container->get('database');
   }
 
   /**

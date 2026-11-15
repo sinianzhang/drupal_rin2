@@ -11,6 +11,7 @@ use Drupal\Core\Database\Connection;
 use Drupal\Core\Database\Query\ConditionInterface;
 use Drupal\Core\Database\Query\Merge;
 use Drupal\Core\Database\Query\SelectInterface;
+use Drupal\Core\Entity\EntityFieldManagerInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Session\AccountInterface;
 
@@ -29,6 +30,7 @@ final class NotificationManager implements NotificationManagerInterface {
     private readonly Connection $database,
     private readonly TimeInterface $time,
     private readonly CacheTagsInvalidatorInterface $cacheTagsInvalidator,
+    private readonly EntityFieldManagerInterface $entityFieldManager,
   ) {}
 
   /**
@@ -110,8 +112,7 @@ final class NotificationManager implements NotificationManagerInterface {
     if (!$this->notificationsEnabled($user) || $notification->isExpired($this->now())) {
       return FALSE;
     }
-    return $notification->isForAllUsers()
-      || (int) $notification->get('target_uid')->target_id === (int) $user->id();
+    return $notification->isForAllUsers() || $notification->isTargeting($user->id());
   }
 
   /**
@@ -153,12 +154,66 @@ final class NotificationManager implements NotificationManagerInterface {
   }
 
   /**
-   * Condition: addressed to the user, or to all users (no target).
+   * {@inheritdoc}
+   */
+  public function getReadCounts(array $notification_ids): array {
+    if (!$notification_ids) {
+      return [];
+    }
+    // One grouped query for the whole admin list.
+    $query = $this->database->select(self::READ_TABLE, 'r')
+      ->fields('r', ['notification_id'])
+      ->condition('r.notification_id', $notification_ids, 'IN')
+      ->groupBy('r.notification_id');
+    $query->addExpression('COUNT(*)', 'read_count');
+    $counts = array_map('intval', $query->execute()->fetchAllKeyed());
+    return $counts + array_fill_keys($notification_ids, 0);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getReaders(NotificationInterface $notification): array {
+    $query = $this->database->select(self::READ_TABLE, 'r')
+      ->fields('r', ['uid', 'read_at'])
+      ->condition('r.notification_id', $notification->id())
+      ->orderBy('r.read_at', 'DESC')
+      ->orderBy('r.uid');
+    return array_map('intval', $query->execute()->fetchAllKeyed());
+  }
+
+  /**
+   * Condition on {rin2_notification} "n": addressed to the user, or to all.
+   *
+   * Recipients live in the field's own table (one row per recipient), so
+   * "to the user" is n.id IN (their rows), "to all" is n.id NOT IN (any row).
    */
   private function targetCondition(SelectInterface $query, int|string $uid): ConditionInterface {
+    [$table, $column] = $this->recipientTable();
+    $to_user = $this->database->select($table, 't')
+      ->fields('t', ['entity_id'])
+      ->condition("t.$column", $uid);
+    $with_recipients = $this->database->select($table, 't')
+      ->fields('t', ['entity_id']);
     return $query->orConditionGroup()
-      ->condition('n.target_uid', $uid)
-      ->isNull('n.target_uid');
+      ->condition('n.id', $to_user, 'IN')
+      ->condition('n.id', $with_recipients, 'NOT IN');
+  }
+
+  /**
+   * Returns the recipients table name and its user ID column.
+   *
+   * @return string[]
+   *   [table, column], from the entity's table mapping.
+   */
+  private function recipientTable(): array {
+    /** @var \Drupal\Core\Entity\Sql\SqlEntityStorageInterface $storage */
+    $storage = $this->entityTypeManager->getStorage('rin2_notification');
+    $mapping = $storage->getTableMapping();
+    return [
+      $mapping->getFieldTableName('target_uid'),
+      $mapping->getFieldColumnName($this->entityFieldManager->getFieldStorageDefinitions('rin2_notification')['target_uid'], 'target_id'),
+    ];
   }
 
   /**

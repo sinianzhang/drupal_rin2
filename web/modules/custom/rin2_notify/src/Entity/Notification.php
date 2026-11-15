@@ -9,18 +9,22 @@ use Drupal\Core\Entity\Attribute\ContentEntityType;
 use Drupal\Core\Entity\ContentEntityBase;
 use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
+use Drupal\Core\Entity\Routing\AdminHtmlRouteProvider;
 use Drupal\Core\Field\BaseFieldDefinition;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
+use Drupal\rin2_notify\Form\NotificationForm;
+use Drupal\rin2_notify\NotificationAccessControlHandler;
 use Drupal\rin2_notify\NotificationInterface;
 use Drupal\rin2_notify\NotificationManagerInterface;
+use Drupal\rin2_notify\NotificationViewBuilder;
 use Drupal\user\EntityOwnerTrait;
-use Drupal\user\UserInterface;
 
 /**
  * Defines the notification entity.
  *
- * One row in {rin2_notification} per posted notification. A NULL target_uid
- * means the notification is addressed to all users.
+ * One row in {rin2_notification} per posted notification. Recipients are in
+ * {rin2_notification__target_uid} (one row per user); no recipient rows means
+ * the notification is addressed to all users.
  */
 #[ContentEntityType(
   id: 'rin2_notification',
@@ -34,8 +38,25 @@ use Drupal\user\UserInterface;
     'label' => 'message',
     'owner' => 'uid',
   ],
+  handlers: [
+    'access' => NotificationAccessControlHandler::class,
+    'view_builder' => NotificationViewBuilder::class,
+    'form' => [
+      'add' => NotificationForm::class,
+    ],
+    'route_provider' => [
+      'html' => AdminHtmlRouteProvider::class,
+    ],
+  ],
   base_table: 'rin2_notification',
   admin_permission: 'administer rin2 notifications',
+  // Write-once: no edit-form or delete-form (see the access handler).
+  links: [
+    'canonical' => '/admin/content/notifications/{rin2_notification}',
+    'add-form' => '/admin/content/notifications/add',
+    // Route defined in rin2_notify.routing.yml (custom controller).
+    'collection' => '/admin/content/notifications',
+  ],
   label_count: [
     'singular' => '@count notification',
     'plural' => '@count notifications',
@@ -74,16 +95,21 @@ final class Notification extends ContentEntityBase implements NotificationInterf
     // Stored as a Unix timestamp so "not expired" is an integer comparison.
     $fields['expires'] = BaseFieldDefinition::create('timestamp')
       ->setLabel(new TranslatableMarkup('Expires'))
+      ->setDescription(new TranslatableMarkup('After this time the notification is no longer shown, even if unread.'))
       ->setRequired(TRUE)
+      ->addConstraint('Rin2ExpiresInFuture')
       ->setDisplayOptions('form', ['type' => 'datetime_timestamp', 'weight' => 2])
       ->setDisplayOptions('view', ['label' => 'inline', 'type' => 'timestamp', 'weight' => 2])
       ->setDisplayConfigurable('form', TRUE)
       ->setDisplayConfigurable('view', TRUE);
 
     // Empty (NULL) means the notification is for all users.
+    // Unlimited: one notification can go to several users. Stored in its own
+    // table; empty means the notification is for all users.
     $fields['target_uid'] = BaseFieldDefinition::create('entity_reference')
-      ->setLabel(new TranslatableMarkup('Recipient'))
-      ->setDescription(new TranslatableMarkup('Leave empty to send the notification to all users.'))
+      ->setLabel(new TranslatableMarkup('Recipients'))
+      ->setDescription(new TranslatableMarkup('The users who receive the notification. Empty means all users.'))
+      ->setCardinality(BaseFieldDefinition::CARDINALITY_UNLIMITED)
       ->setSetting('target_type', 'user')
       ->setSetting('handler', 'default')
       ->setDisplayOptions('form', ['type' => 'entity_reference_autocomplete', 'weight' => 3])
@@ -93,10 +119,12 @@ final class Notification extends ContentEntityBase implements NotificationInterf
 
     $fields['uid']
       ->setLabel(new TranslatableMarkup('Author'))
+      ->setDisplayOptions('view', ['label' => 'inline', 'type' => 'author', 'weight' => 4])
       ->setDisplayConfigurable('view', TRUE);
 
     $fields['created'] = BaseFieldDefinition::create('created')
-      ->setLabel(new TranslatableMarkup('Created'))
+      ->setLabel(new TranslatableMarkup('Posted'))
+      ->setDisplayOptions('view', ['label' => 'inline', 'type' => 'timestamp', 'weight' => 5])
       ->setDisplayConfigurable('view', TRUE);
 
     return $fields;
@@ -147,8 +175,24 @@ final class Notification extends ContentEntityBase implements NotificationInterf
   /**
    * {@inheritdoc}
    */
-  public function getTargetUser(): ?UserInterface {
-    return $this->get('target_uid')->entity;
+  public function getTargetUsers(): array {
+    /** @var \Drupal\Core\Field\EntityReferenceFieldItemListInterface $items */
+    $items = $this->get('target_uid');
+    return $items->referencedEntities();
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getTargetUserIds(): array {
+    return array_map('intval', array_column($this->get('target_uid')->getValue(), 'target_id'));
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function isTargeting(int|string $uid): bool {
+    return in_array((int) $uid, $this->getTargetUserIds(), TRUE);
   }
 
   /**

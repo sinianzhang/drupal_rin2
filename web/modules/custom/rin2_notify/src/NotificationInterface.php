@@ -6,7 +6,6 @@ namespace Drupal\rin2_notify;
 
 use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\user\EntityOwnerInterface;
-use Drupal\user\UserInterface;
 
 /**
  * Provides an interface for the notification entity.
@@ -46,9 +45,27 @@ interface NotificationInterface extends ContentEntityInterface, EntityOwnerInter
   public function isExpired(int $now): bool;
 
   /**
-   * Returns the target user, or NULL when the notification is for all users.
+   * Returns the recipients; empty when the notification is for all users.
+   *
+   * Users deleted since posting are left out.
+   *
+   * @return \Drupal\user\UserInterface[]
+   *   Recipient user entities.
    */
-  public function getTargetUser(): ?UserInterface;
+  public function getTargetUsers(): array;
+
+  /**
+   * Returns the recipient user IDs, including users deleted since posting.
+   *
+   * @return int[]
+   *   User IDs; empty when the notification is for all users.
+   */
+  public function getTargetUserIds(): array;
+
+  /**
+   * Whether the user is one of the recipients (not "all users").
+   */
+  public function isTargeting(int|string $uid): bool;
 
   /**
    * Whether the notification is addressed to all users.

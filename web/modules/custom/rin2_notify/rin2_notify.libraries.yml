@@ -1,0 +1,25 @@
+# Third-party, unmodified, shipped locally (LGPL-3.0): see js/vendor/simple-datatables/README.txt.
+simple_datatables:
+  remote: https://github.com/fiduswriter/simple-datatables
+  version: 10.3.0
+  license:
+    name: LGPL-3.0
+    url: https://github.com/fiduswriter/simple-datatables/blob/main/LICENSE
+    gpl-compatible: true
+  js:
+    js/vendor/simple-datatables/simple-datatables.js: { minified: true }
+  css:
+    component:
+      js/vendor/simple-datatables/style.css: {}
+
+# Client-side filters, sorting and paging for admin tables.
+admin_table:
+  js:
+    js/admin-table.js: {}
+  css:
+    theme:
+      css/admin-table.css: {}
+  dependencies:
+    - core/drupal
+    - core/once
+    - rin2_notify/simple_datatables

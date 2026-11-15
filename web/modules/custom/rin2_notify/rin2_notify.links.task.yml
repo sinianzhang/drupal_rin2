@@ -1,0 +1,6 @@
+# "Notifications" tab on /admin/content, next to Content/Media/Files.
+entity.rin2_notification.collection:
+  title: 'Notifications'
+  route_name: entity.rin2_notification.collection
+  base_route: system.admin_content
+  weight: 20

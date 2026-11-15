@@ -1,0 +1,10 @@
+# Add form and detail page come from the entity's AdminHtmlRouteProvider.
+entity.rin2_notification.collection:
+  path: '/admin/content/notifications'
+  defaults:
+    _controller: '\Drupal\rin2_notify\Controller\NotificationListController::list'
+    _title: 'Notifications'
+  requirements:
+    _permission: 'administer rin2 notifications'
+  options:
+    _admin_route: true

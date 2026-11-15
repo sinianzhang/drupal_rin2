@@ -112,3 +112,44 @@ function rin2_notify_update_11004(): string {
   $schema->createTable('rin2_notification_read', rin2_notify_schema()['rin2_notification_read']);
   return (string) t('Created the rin2_notification_read table.');
 }
+
+/**
+ * Allow several recipients per notification (moves target_uid to its table).
+ */
+function rin2_notify_update_11005(): string {
+  // Core refuses to change a field's cardinality while it holds data. So:
+  // remember the current recipients, empty the old column, swap the field
+  // definition (drops the column, creates rin2_notification__target_uid),
+  // then write the recipients back.
+  $database = \Drupal::database();
+  $manager = \Drupal::entityDefinitionUpdateManager();
+  $old = $manager->getFieldStorageDefinition('target_uid', 'rin2_notification');
+  if ($old && $old->getCardinality() !== 1) {
+    return (string) t('Recipients already allow several users.');
+  }
+
+  $recipients = $database->select('rin2_notification', 'n')
+    ->fields('n', ['id', 'target_uid'])
+    ->isNotNull('n.target_uid')
+    ->execute()
+    ->fetchAllKeyed();
+  $database->update('rin2_notification')
+    ->fields(['target_uid' => NULL])
+    ->execute();
+
+  if ($old) {
+    $manager->uninstallFieldStorageDefinition($old);
+  }
+  \Drupal::service('entity_field.manager')->clearCachedFieldDefinitions();
+  $new = \Drupal::service('entity_field.manager')->getFieldStorageDefinitions('rin2_notification')['target_uid'];
+  $manager->installFieldStorageDefinition('target_uid', 'rin2_notification', 'rin2_notify', $new);
+
+  // Notifications cannot be edited through the site, but saving in code is
+  // fine; entity access is not involved here.
+  $storage = \Drupal::entityTypeManager()->getStorage('rin2_notification');
+  $storage->resetCache();
+  foreach ($storage->loadMultiple(array_keys($recipients)) as $id => $notification) {
+    $notification->set('target_uid', [(int) $recipients[$id]])->save();
+  }
+  return (string) t('Recipients moved to rin2_notification__target_uid (@count notifications with a recipient).', ['@count' => count($recipients)]);
+}

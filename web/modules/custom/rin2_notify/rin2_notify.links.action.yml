@@ -1,0 +1,5 @@
+entity.rin2_notification.add_form:
+  title: 'Post notification'
+  route_name: entity.rin2_notification.add_form
+  appears_on:
+    - entity.rin2_notification.collection

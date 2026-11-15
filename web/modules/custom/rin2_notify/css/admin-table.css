@@ -1,0 +1,45 @@
+/**
+ * @file
+ * Layout for RIN2 admin table filters and simple-datatables controls (Claro).
+ */
+
+.rin2-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 1rem;
+  align-items: flex-end;
+  margin-block-end: 1rem;
+}
+
+.rin2-filters .form-item {
+  margin-block: 0.5rem;
+}
+
+.rin2-filters .form-actions {
+  margin-block: 0.5rem;
+}
+
+/* Status cell: make expired rows visibly secondary. */
+.rin2-notification--expired td {
+  color: #6b6b6b;
+}
+
+/* simple-datatables pager and info line, aligned with Claro spacing. */
+.datatable-wrapper .datatable-top {
+  padding-inline: 0;
+}
+
+.datatable-wrapper .datatable-bottom {
+  padding-inline: 0;
+}
+
+.datatable-wrapper .datatable-pagination a,
+.datatable-wrapper .datatable-pagination button {
+  border-radius: 2px;
+}
+
+.datatable-wrapper .datatable-pagination .datatable-active a,
+.datatable-wrapper .datatable-pagination .datatable-active button {
+  background-color: #003ecc;
+  color: #fff;
+}

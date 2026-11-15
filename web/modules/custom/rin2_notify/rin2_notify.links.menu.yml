@@ -1,0 +1,6 @@
+entity.rin2_notification.collection:
+  title: 'Notifications'
+  description: 'List posted notifications and post new ones.'
+  parent: system.admin_content
+  route_name: entity.rin2_notification.collection
+  weight: 20

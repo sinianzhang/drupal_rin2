@@ -106,16 +106,19 @@ How to use this file: work through the steps in order. Each step ends with **Don
 ~~**Done when:** a fresh install plus `rin2:seed` gives a demo-ready site.~~
 ~~**Commits:** `Add rin2:seed Drush command for demo data`~~
 
-## Step 6: Post notifications + posted-notifications list
+## Step 6: Post notifications + posted-notifications list ✅ (browser check of the JS filters pending)
 
-- [ ] Add/edit/delete forms for `rin2_notification` (admin only); destination field: "All users" or autocomplete a user
-- [ ] Validation: expiry must be in the future; message ≤ 255 chars
-- [ ] Admin list `/admin/content/notifications` (View): columns type, message, destination, created, expires, status (active/expired), read count
-- [ ] Exposed filters: type, destination (all / specific user), status (active/expired), text contains
-- [ ] Detail page per notification (who has read it, and when)
+- [x] Add form for `rin2_notification` (admin only) at `/admin/content/notifications/add` (menu: Content → Post notification); destination radios "All users" / "A specific user" + user autocomplete shown via `#states`, required server-side when "specific"; after saving → detail page
+  - **Decision (2026-11-15): notifications are write-once.** No edit and no delete: `NotificationAccessControlHandler` forbids `update`/`delete` for everyone (incl. uid 1, JSON:API); no edit/delete routes exist
+- [x] Validation: expiry must be in the future (only on create, since there is no editing): constraint plugin `Rin2ExpiresInFuture` on the `expires` field, so it applies to every save path that validates (form, API); message ≤ 255 chars (already enforced by `max_length`)
+- [x] Admin list `/admin/content/notifications` (custom controller `NotificationListController`): columns type, message (links to detail page), destination, posted, expires, status (active/expired), read count (`NotificationManager::getReadCounts()`, one grouped query); newest first; "Notifications" tab under Content + "Post notification" button; cache: list + read tags, max-age until the next notification expires
+- [x] Filters (client-side, simple-datatables 10.3.0): message contains, type, destination (All users / each recipient), status (active/expired), Reset; plus column sorting (dates by timestamp via `data-order`) and paging (25 per page). `NotificationFilterForm` (never submitted) + generic `js/admin-table.js` (`data-rin2-table` / `data-rin2-column` / `data-rin2-match`), reusable for the Step 7 users list
+- [x] Detail page per notification `/admin/content/notifications/{id}` (`NotificationViewBuilder`, full view mode): type, message, expires, recipient ("All users" when empty), author, posted, status, and a "Read by N users" table (user, read at) from `NotificationManager::getReaders()`
 
+**Filters:** to be built client-side with the JS library **simple-datatables** (user's choice). Table built by a **custom controller** (decided 2026-11-15, not a View). Library: **local copy** in `js/vendor/simple-datatables/` (unmodified UMD build + CSS + LICENSE, LGPL-3.0), declared in `rin2_notify.libraries.yml`.
+**Tests:** `tests/src/Functional/NotificationFormTest.php` (post to all / to a user, user required, expiry in the past rejected, list rows/status/read count/order, access: 403 for non-admins, no edit/delete pages, entity access forbids update/delete); kernel tests for `getReadCounts()`, `getReaders()` and the expiry constraint; functional checks for filter markup, `data-order`, attached JS and the detail page. 18 tests green. The JS filtering itself is not covered automatically (no FunctionalJavascript/Chrome in DDEV): check it by hand in the browser.
 **Done when:** an admin can post a notification and find it with each filter.
-**Commits:** `Add notification add/edit forms`, `Add posted notifications admin view with filters`, `Add notification detail page`
+**Commits:** `Add notification add form`, `Add posted notifications admin view with filters`, `Add notification detail page`
 
 ## Step 7: Users list with unread count + impersonate
 
@@ -203,3 +206,6 @@ How to use this file: work through the steps in order. Each step ends with **Don
 | 2026-11-15 | 4 | D4 + D5 decided; `NotificationManager` service built, scenario-checked via drush (kernel test still to do) |
 | 2026-11-15 | 4 ✅ | Step 4 complete: cache metadata + tag invalidation, kernel test (9 tests green, also closes Step 3 fresh-install check), `options` dependency |
 | 2026-11-15 | 5 ⏭️ | Step 5 (seed command) skipped by decision; test data created by hand / via UI |
+| 2026-11-15 | 6.1 ✅ | Add form with destination radios, write-once access handler (no edit/delete), menu link, functional test (12 tests green) |
+| 2026-11-15 | 6.2 + 6.3 ✅ | Expiry-in-future constraint (create only); admin list as custom controller with status + read count, Content tab, action button (16 tests green). Filters (6.4) and detail page (6.5) still open |
+| 2026-11-15 | 6.4 + 6.5 ✅ | Client-side filters/sorting/paging with simple-datatables 10.3.0 (local copy), detail page with status + readers table (18 tests green). Step 6 done pending a manual browser check of the filters |
