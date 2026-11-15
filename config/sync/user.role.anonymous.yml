@@ -5,6 +5,7 @@ dependencies:
   config:
     - filter.format.restricted_html
   module:
+    - devel
     - filter
     - system
 _core:
@@ -15,4 +16,5 @@ weight: 0
 is_admin: false
 permissions:
   - 'access content'
+  - 'access devel information'
   - 'use text format restricted_html'
