@@ -96,13 +96,67 @@ final class NotificationManager implements NotificationManagerInterface {
     if (!$this->notificationsEnabled($user)) {
       return 0;
     }
-    // One COUNT query: the admin users list calls this once per row.
+    // One COUNT query; for many users at once use getUnreadCounts().
     $query = $this->database->select('rin2_notification', 'n');
     $query->leftJoin(self::READ_TABLE, 'r', '[r].[notification_id] = [n].[id] AND [r].[uid] = :uid', [':uid' => $user->id()]);
     $query->condition('n.expires', $this->now(), '>')
       ->condition($this->targetCondition($query, $user->id()))
       ->isNull('r.uid');
     return (int) $query->countQuery()->execute()->fetchField();
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getUnreadCounts(array $uids): array {
+    $counts = array_fill_keys($uids, 0);
+    $enabled = [];
+    /** @var \Drupal\user\UserInterface $account */
+    foreach ($this->entityTypeManager->getStorage('user')->loadMultiple($uids) as $uid => $account) {
+      if (!$account->isAnonymous() && $account->get('notifications_enabled')->value) {
+        $enabled[] = $uid;
+      }
+    }
+    $active = $this->database->select('rin2_notification', 'n')
+      ->fields('n', ['id'])
+      ->condition('n.expires', $this->now(), '>')
+      ->execute()
+      ->fetchCol();
+    if (!$enabled || !$active) {
+      return $counts;
+    }
+
+    // Recipients of the active notifications: [notification ID][uid].
+    // Notifications without rows are for all users.
+    [$table, $column] = $this->recipientTable();
+    $recipients = [];
+    $rows = $this->database->select($table, 't')
+      ->fields('t', ['entity_id', $column])
+      ->condition('t.entity_id', $active, 'IN')
+      ->execute();
+    foreach ($rows as $row) {
+      $recipients[$row->entity_id][$row->{$column}] = TRUE;
+    }
+    // What these users have read: [uid][notification ID].
+    $read = [];
+    $rows = $this->database->select(self::READ_TABLE, 'r')
+      ->fields('r', ['uid', 'notification_id'])
+      ->condition('r.uid', $enabled, 'IN')
+      ->condition('r.notification_id', $active, 'IN')
+      ->execute();
+    foreach ($rows as $row) {
+      $read[$row->uid][$row->notification_id] = TRUE;
+    }
+
+    foreach ($enabled as $uid) {
+      foreach ($active as $id) {
+        $for_user = !isset($recipients[$id]) || isset($recipients[$id][$uid]);
+        if ($for_user && !isset($read[$uid][$id])) {
+          $counts[$uid]++;
+        }
+      }
+    }
+    return $counts;
   }
 
   /**

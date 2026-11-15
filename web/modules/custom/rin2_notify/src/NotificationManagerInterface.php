@@ -86,6 +86,21 @@ interface NotificationManagerInterface {
   public function isRead(NotificationInterface $notification, AccountInterface $user): bool;
 
   /**
+   * Counts unread visible notifications for several users at once.
+   *
+   * Same rules as countUnreadFor(), but in a fixed number of queries, for
+   * lists with one row per user.
+   *
+   * @param int[]|string[] $uids
+   *   User IDs.
+   *
+   * @return int[]
+   *   Unread counts keyed by user ID; 0 for users with notifications off,
+   *   anonymous and unknown users.
+   */
+  public function getUnreadCounts(array $uids): array;
+
+  /**
    * Counts how many users have read each notification.
    *
    * @param int[]|string[] $notification_ids

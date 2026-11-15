@@ -313,6 +313,46 @@ final class NotificationManagerTest extends KernelTestBase {
   }
 
   /**
+   * Batch unread counts follow the same rules as countUnreadFor().
+   */
+  public function testGetUnreadCounts(): void {
+    $carol = $this->createUser([], 'carol');
+    $dave = $this->createUser([], 'dave');
+    $dave->set('notifications_enabled', FALSE)->save();
+
+    $for_all = $this->post('for all');
+    $this->post('for alice', target: $this->alice);
+    Notification::create([
+      'type' => 'system',
+      'message' => 'for alice and bob',
+      'expires' => self::NOW + 3600,
+      'target_uid' => [$this->alice->id(), $this->bob->id()],
+    ])->save();
+    $this->post('expired for all', expires_in: -10);
+    $this->post('expired for bob', expires_in: -10, target: $this->bob);
+    $this->manager->markRead($for_all, $this->bob);
+
+    $users = [$this->admin, $this->alice, $this->bob, $carol, $dave];
+    $uids = array_map(static fn (UserInterface $user): int => (int) $user->id(), $users);
+    $counts = $this->manager->getUnreadCounts($uids);
+
+    $this->assertSame([
+      (int) $this->admin->id() => 1,
+      (int) $this->alice->id() => 3,
+      (int) $this->bob->id() => 1,
+      (int) $carol->id() => 1,
+      (int) $dave->id() => 0,
+    ], $counts);
+    foreach ($users as $user) {
+      $this->assertSame($this->manager->countUnreadFor($user), $counts[$user->id()], $user->getAccountName());
+    }
+
+    // Anonymous, unknown users and an empty list.
+    $this->assertSame([0 => 0, 999 => 0], $this->manager->getUnreadCounts([0, 999]));
+    $this->assertSame([], $this->manager->getUnreadCounts([]));
+  }
+
+  /**
    * Readers are listed with their read time, most recent first.
    */
   public function testGetReaders(): void {
