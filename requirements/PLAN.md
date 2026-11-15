@@ -21,7 +21,7 @@ How to use this file: work through the steps in order. Each step ends with **Don
 
 | Spec requirement | Drupal implementation | Step |
 |---|---|---|
-| Basic users table + seed records | Core User entity + Drush seed command | 3, 5 |
+| Basic users table + seed records | Core User entity; records created by hand / via the UI (seed command skipped, see Step 5) | 3 |
 | Migration on "production" users table: notification switch NOT NULL, phone nullable | Base fields added via `hook_entity_base_field_info()` + `hook_update_N()` that installs them and backfills existing rows | 3 |
 | Notifications: type, short text, expiration, destination (user / all) | Custom content entity `rin2_notification` | 4 |
 | Know when a user reads a notification | Custom table `rin2_notification_read` (uid, notification id, read time) | 4 |
@@ -57,7 +57,7 @@ How to use this file: work through the steps in order. Each step ends with **Don
 
 **Done when:** ✅ masquerade enabled (`core.extension.yml`), `/unmasquerade` route exists, ✅ only `administrator` holds masquerade permissions, ✅ libphonenumber loads and validates `+393331234567`, ✅ `ddev drush config:status` → no differences.
 **Commits:** `[TASK] add packages masquerade libphonenumber and devel`, `[TASK] add module and setting for masquerade`
-**Manual check (still worth doing once):** log in as admin (`ddev drush uli`) → `/admin/people` → masquerade as another user → "Switch back" (`/unmasquerade`). Seeded users arrive in Step 5; before that, create one with `ddev drush user:create demo --password=demo`.
+**Manual check (still worth doing once):** log in as admin (`ddev drush uli`) → `/admin/people` → masquerade as another user → "Switch back" (`/unmasquerade`). Create test users by hand, e.g. `ddev drush user:create demo --password=demo` (Step 5 seeding skipped).
 
 ## Step 3: Custom module and the users-table "migration" ✅
 
@@ -72,7 +72,7 @@ How to use this file: work through the steps in order. Each step ends with **Don
 **Done when:** ✅ `SHOW CREATE TABLE users_field_data` → `notifications_enabled tinyint(4) NOT NULL`, `phone varchar(32) DEFAULT NULL`; ✅ existing users backfilled with `1`; ✅ raw `SET notifications_enabled = NULL` rejected (error 1048); ✅ `updatedb:status` clean, entity definitions up to date; ✅ phpcs clean.
 **Commits:** `Scaffold rin2_notify module`, `[TASK] 2 new fields in user table`, + NOT NULL fix (11002) and design note (to commit)
 **Open:** ~~fresh-install path (NOT NULL without running updates) not yet verified~~ → covered by `NotificationManagerTest::testNotificationsEnabledIsNotNullOnInstall()` (Step 4).
-**Local data:** demo users `alice`, `bob`, `tom` created by hand (uid 2–4); Step 5 seeding will replace them.
+**Local data:** demo users `alice`, `bob`, `tom` created by hand (uid 2–4); kept as demo data (Step 5 seeding skipped).
 
 ## Step 4: Notification entity and read tracking ✅
 
@@ -96,13 +96,15 @@ How to use this file: work through the steps in order. Each step ends with **Don
 **Commits:** `Add notification entity`, `Add read-status table and NotificationManager service`, `Add kernel tests for notification visibility rules`
 **Notes:** `drupal:options` added to `rin2_notify.info.yml` dependencies (the `type` field is `list_string`). Run tests: `ddev exec vendor/bin/phpunit -c web/core web/modules/custom/rin2_notify`.
 
-## Step 5: Seed data
+## Step 5: Seed data ⏭️ skipped
 
-- [ ] Drush command `ddev drush rin2:seed`: creates ~10 users (some with phone, one with notifications off) and ~15 notifications (all types, some expired, some targeted, some for all), and marks a few as read
-- [ ] Optional `--reset` flag to delete seeded data
+**Skipped (2026-11-15):** test data is created by hand or through the frontend features (Steps 6–9) instead of a seed command.
 
-**Done when:** a fresh install plus `rin2:seed` gives a demo-ready site.
-**Commits:** `Add rin2:seed Drush command for demo data`
+- [-] ~~Drush command `ddev drush rin2:seed`: creates ~10 users (some with phone, one with notifications off) and ~15 notifications (all types, some expired, some targeted, some for all), and marks a few as read~~
+- [-] ~~Optional `--reset` flag to delete seeded data~~
+
+~~**Done when:** a fresh install plus `rin2:seed` gives a demo-ready site.~~
+~~**Commits:** `Add rin2:seed Drush command for demo data`~~
 
 ## Step 6: Post notifications + posted-notifications list
 
@@ -122,7 +124,7 @@ How to use this file: work through the steps in order. Each step ends with **Don
 - [ ] Exposed filters: name/email contains, notifications on/off, "has unread"
 - [ ] Row actions: **Impersonate** (masquerade link → user home page), **Edit settings** (Step 9 form)
 
-**Done when:** the list shows correct counts that match the seed data, and clicking Impersonate lands on that user's home page.
+**Done when:** the list shows correct counts for the hand-made test data, and clicking Impersonate lands on that user's home page.
 **Commits:** `Add unread count Views field plugin`, `Add users overview page with filters and impersonate action`
 
 ## Step 8: User home page + bell
@@ -133,7 +135,7 @@ How to use this file: work through the steps in order. Each step ends with **Don
 - [ ] Click a notification: POST to `/rin2/notification/{id}/read` (CSRF token) → marks it read, updates the badge without a page reload (Drupal AJAX or small vanilla JS)
 - [ ] Respect `notifications_enabled`: when off, the bell is hidden **(decide: hidden, or shown greyed with "notifications off")**
 
-**Done when:** while impersonating a seeded user, the badge count equals the users-list count, and clicking items lowers it to 0.
+**Done when:** while impersonating a test user, the badge count equals the users-list count, and clicking items lowers it to 0.
 **Commits:** `Add user home page`, `Add notification bell block with unread badge`, `Mark notifications as read via AJAX`
 
 ## Step 9: User notification settings form
@@ -166,7 +168,7 @@ How to use this file: work through the steps in order. Each step ends with **Don
 
 ## Step 12: Documentation and delivery
 
-- [ ] Root `README.md`: requirements (DDEV, Docker), install steps (`ddev start`, `ddev composer install`, `ddev drush si --existing-config -y`, `ddev drush rin2:seed`), login (`ddev drush uli`), **verification walkthrough** matching each spec bullet, how to run tests
+- [ ] Root `README.md`: requirements (DDEV, Docker), install steps (`ddev start`, `ddev composer install`, `ddev drush si --existing-config -y`), how to create test users and notifications by hand, login (`ddev drush uli`), **verification walkthrough** matching each spec bullet, how to run tests
 - [ ] Design notes (`.md` in the relevant folders): Drupal vs Laravel mapping, users "migration", read-status table design, why libphonenumber over MessageBird (free, offline, no API key)
 - [ ] Final check from a **fresh clone**: install from config and follow the README end to end
 - [ ] Package: `git archive` is NOT enough (it drops `.git`); use `tar czf rin2-drupal.tar.gz --exclude=vendor --exclude=web/core --exclude=web/modules/contrib --exclude=web/sites/default/files my-drupal11-site`
@@ -200,3 +202,4 @@ How to use this file: work through the steps in order. Each step ends with **Don
 | 2026-11-15 | 4 | `rin2_notification_read` table (hook_schema + update 11004), read rows cleaned up on user/notification delete |
 | 2026-11-15 | 4 | D4 + D5 decided; `NotificationManager` service built, scenario-checked via drush (kernel test still to do) |
 | 2026-11-15 | 4 ✅ | Step 4 complete: cache metadata + tag invalidation, kernel test (9 tests green, also closes Step 3 fresh-install check), `options` dependency |
+| 2026-11-15 | 5 ⏭️ | Step 5 (seed command) skipped by decision; test data created by hand / via UI |
