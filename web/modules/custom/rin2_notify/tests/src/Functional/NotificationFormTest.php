@@ -102,11 +102,13 @@ final class NotificationFormTest extends BrowserTestBase {
     $this->drupalGet('/admin/content/notifications/add');
     $this->assertSession()->elementExists('css', 'textarea[name="message[0][value]"][maxlength="255"]');
     $this->assertSession()->fieldNotExists('target_uid[0][target_id]');
-    $row = $this->assertSession()->elementExists('css', 'table.rin2-recipients tr:has(input[name="recipients[' . $this->bob->id() . ']"])');
+    // XPath: Mink's CSS selector does not support :has().
+    $row = $this->assertSession()->elementExists('xpath', '//table[contains(@class, "rin2-recipients")]//tr[.//input[@name="recipients[' . $this->bob->id() . ']"]]');
     $this->assertStringContainsString('bob', $row->getText());
     $this->assertStringContainsString($this->bob->getEmail(), $row->getText());
-    // Every active user is listed (poster, bob, extra).
-    $this->assertCount(3, $this->getSession()->getPage()->findAll('css', 'table.rin2-recipients tbody input[type="checkbox"]'));
+    // Every active user is listed (uid 1 from the installer, poster, bob,
+    // extra).
+    $this->assertCount(4, $this->getSession()->getPage()->findAll('css', 'table.rin2-recipients tbody input[type="checkbox"]'));
   }
 
   /**
@@ -196,11 +198,18 @@ final class NotificationFormTest extends BrowserTestBase {
     $page = $this->getSession()->getPage();
     $this->assertSession()->elementExists('css', 'table[data-rin2-table="notifications"]');
     $this->assertSession()->elementExists('css', '[data-rin2-filters="notifications"] input[data-rin2-column="1"][data-rin2-match="contains"]');
-    foreach (['type' => 0, 'destination' => 2, 'status' => 5] as $name => $column) {
+    // Destination cells list several recipients, so that filter matches one
+    // item of the comma-separated list.
+    $filters = [
+      'type' => [0, 'exact'],
+      'destination' => [2, 'list'],
+      'status' => [5, 'exact'],
+    ];
+    foreach ($filters as $name => [$column, $match]) {
       $select = $page->find('css', "select[name=\"$name\"]");
       $this->assertNotNull($select, "Filter $name exists.");
       $this->assertSame((string) $column, $select->getAttribute('data-rin2-column'));
-      $this->assertSame('exact', $select->getAttribute('data-rin2-match'));
+      $this->assertSame($match, $select->getAttribute('data-rin2-match'));
     }
     // Option values equal the cell texts they must match exactly.
     $this->assertSession()->optionExists('destination', 'All users');
