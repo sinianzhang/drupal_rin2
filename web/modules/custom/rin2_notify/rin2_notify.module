@@ -10,6 +10,7 @@ declare(strict_types=1);
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Field\BaseFieldDefinition;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
+use Drupal\user\UserInterface;
 use Drupal\rin2_notify\Rin2UserStorageSchema;
 
 /**
@@ -64,4 +65,14 @@ function rin2_notify_user_base_field_definitions(): array {
     ->setDisplayConfigurable('view', TRUE);
 
   return $fields;
+}
+
+/**
+ * Implements hook_user_delete().
+ */
+function rin2_notify_user_delete(UserInterface $account): void {
+  // Drupal does not enforce the foreign keys declared in hook_schema().
+  \Drupal::database()->delete('rin2_notification_read')
+    ->condition('uid', $account->id())
+    ->execute();
 }

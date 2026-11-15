@@ -82,7 +82,7 @@ How to use this file: work through the steps in order. Each step ends with **Don
   - `expires`: timestamp (required); stored as a Unix timestamp so "not expired" is an integer comparison
   - `target_uid`: entity reference to user, **empty = all users**
   - `created`, `uid` (author)
-- [ ] Table `rin2_notification_read` via `hook_schema()`: `uid`, `notification_id`, `read_at`; primary key (uid, notification_id)
+- [x] Table `rin2_notification_read` via `hook_schema()`: `uid`, `notification_id`, `read_at`; primary key (uid, notification_id); update 11004 creates it on the existing site; rows removed when a user or notification is deleted
 - [ ] Service `rin2_notify.manager` (`NotificationManager`) containing all the rules:
   - `getVisibleFor(AccountInterface $user)`: not expired, target is the user or all, ordered newest first
   - `countUnreadFor($user)`
@@ -195,3 +195,4 @@ How to use this file: work through the steps in order. Each step ends with **Don
 | 2026-11-09 | 2 ✅ | masquerade 2.2.0 enabled (admin-only via is_admin), libphonenumber 9.0.43, devel 5.5.0 (dev, not enabled) |
 | 2026-11-09 | 3 ✅ | rin2_notify module; users.notifications_enabled (NOT NULL, via custom storage schema, updates 11001+11002) and users.phone (nullable); design note |
 | 2026-11-15 | 4 | `rin2_notification` content entity (update 11003 installs it on the existing site); `expires` as timestamp instead of datetime; permissions file added |
+| 2026-11-15 | 4 | `rin2_notification_read` table (hook_schema + update 11004), read rows cleaned up on user/notification delete |

@@ -8,6 +8,52 @@
 declare(strict_types=1);
 
 /**
+ * Implements hook_schema().
+ */
+function rin2_notify_schema(): array {
+  // One row per (user, notification) the user has read; no row means unread.
+  // A plain table rather than an entity: it only links two IDs to a time.
+  $schema['rin2_notification_read'] = [
+    'description' => 'Which user has read which notification, and when.',
+    'fields' => [
+      'uid' => [
+        'description' => 'The {users}.uid of the reader.',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ],
+      'notification_id' => [
+        'description' => 'The {rin2_notification}.id that was read.',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ],
+      'read_at' => [
+        'description' => 'Unix timestamp of when the user read it.',
+        'type' => 'int',
+        'not null' => TRUE,
+      ],
+    ],
+    // Also makes markRead() idempotent and serves lookups by uid.
+    'primary key' => ['uid', 'notification_id'],
+    'indexes' => [
+      'notification_id' => ['notification_id'],
+    ],
+    'foreign keys' => [
+      'reader' => [
+        'table' => 'users',
+        'columns' => ['uid' => 'uid'],
+      ],
+      'notification' => [
+        'table' => 'rin2_notification',
+        'columns' => ['notification_id' => 'id'],
+      ],
+    ],
+  ];
+  return $schema;
+}
+
+/**
  * Add notifications_enabled (NOT NULL) and phone (nullable) to users.
  */
 function rin2_notify_update_11001(): string {
@@ -51,4 +97,18 @@ function rin2_notify_update_11003(): string {
   $entity_type_manager->clearCachedDefinitions();
   $manager->installEntityType($entity_type_manager->getDefinition('rin2_notification'));
   return (string) t('Installed the rin2_notification entity type.');
+}
+
+/**
+ * Create the rin2_notification_read table.
+ */
+function rin2_notify_update_11004(): string {
+  // hook_schema() tables are only created on module install, so the already
+  // enabled module needs this update. Fresh installs get it from hook_schema().
+  $schema = \Drupal::database()->schema();
+  if ($schema->tableExists('rin2_notification_read')) {
+    return (string) t('Table rin2_notification_read already exists.');
+  }
+  $schema->createTable('rin2_notification_read', rin2_notify_schema()['rin2_notification_read']);
+  return (string) t('Created the rin2_notification_read table.');
 }

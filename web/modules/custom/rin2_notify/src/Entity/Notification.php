@@ -6,6 +6,7 @@ namespace Drupal\rin2_notify\Entity;
 
 use Drupal\Core\Entity\Attribute\ContentEntityType;
 use Drupal\Core\Entity\ContentEntityBase;
+use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Field\BaseFieldDefinition;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
@@ -97,6 +98,17 @@ final class Notification extends ContentEntityBase implements NotificationInterf
       ->setDisplayConfigurable('view', TRUE);
 
     return $fields;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function postDelete(EntityStorageInterface $storage, array $entities): void {
+    parent::postDelete($storage, $entities);
+    // Drupal does not enforce the foreign keys declared in hook_schema().
+    \Drupal::database()->delete('rin2_notification_read')
+      ->condition('notification_id', array_keys($entities), 'IN')
+      ->execute();
   }
 
   /**
