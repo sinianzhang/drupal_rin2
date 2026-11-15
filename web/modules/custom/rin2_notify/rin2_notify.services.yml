@@ -1,0 +1,7 @@
+services:
+  _defaults:
+    autowire: true
+
+  rin2_notify.manager:
+    class: Drupal\rin2_notify\NotificationManager
+  Drupal\rin2_notify\NotificationManagerInterface: '@rin2_notify.manager'

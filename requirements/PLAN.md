@@ -83,11 +83,12 @@ How to use this file: work through the steps in order. Each step ends with **Don
   - `target_uid`: entity reference to user, **empty = all users**
   - `created`, `uid` (author)
 - [x] Table `rin2_notification_read` via `hook_schema()`: `uid`, `notification_id`, `read_at`; primary key (uid, notification_id); update 11004 creates it on the existing site; rows removed when a user or notification is deleted
-- [ ] Service `rin2_notify.manager` (`NotificationManager`) containing all the rules:
+- [x] Service `rin2_notify.manager` (`NotificationManager`, autowirable via `NotificationManagerInterface`) containing all the rules:
   - `getVisibleFor(AccountInterface $user)`: not expired, target is the user or all, ordered newest first
   - `countUnreadFor($user)`
-  - `markRead($notification, $user)` (idempotent)
+  - `markRead($notification, $user)` (idempotent; does nothing for users with `notifications_enabled = 0`, so they never get a row in `rin2_notification_read`)
   - `isRead($notification, $user)`
+  - `isVisibleTo($notification, $user)` (added: used by `markRead()`, and by the Step 8 route for access)
 - [ ] Cache tags/contexts so counters update after posting or reading
 - [x] Permissions: `administer rin2 notifications`, `view own rin2 notifications` (`rin2_notify.permissions.yml`)
 
@@ -181,8 +182,8 @@ How to use this file: work through the steps in order. Each step ends with **Don
 | D1 | Unread-count list: Views plugin or custom controller? | Views (filters for free) | |
 | D2 | Bell when notifications are switched off | Hide bell entirely | |
 | D3 | Default phone region for numbers without `+` | IT (spec author looks Italian) or DE | |
-| D4 | "For all" notifications: also visible to users created **after** posting? | Yes (simplest, matches "for all") | |
-| D5 | Does turning notifications off also exclude the user from unread counts in the admin list? | No: count stays, setting only affects on-screen display | |
+| D4 | "For all" notifications: also visible to users created **after** posting? | Yes (simplest, matches "for all") | **Yes.** "For all" means everybody, including users created later (except users with notifications off, see D5) |
+| D5 | Does turning notifications off also exclude the user from unread counts in the admin list? | No: count stays, setting only affects on-screen display | **Yes.** `notifications_enabled = 0` → user gets no notifications at runtime: `getVisibleFor()` returns none, `countUnreadFor()` returns 0. Re-enabling shows still-unexpired notifications again (runtime check, nothing stored) |
 | D6 | Push to GitHub in addition to the tarball? | Yes, private repo | |
 
 ## Progress log
@@ -196,3 +197,4 @@ How to use this file: work through the steps in order. Each step ends with **Don
 | 2026-11-09 | 3 ✅ | rin2_notify module; users.notifications_enabled (NOT NULL, via custom storage schema, updates 11001+11002) and users.phone (nullable); design note |
 | 2026-11-15 | 4 | `rin2_notification` content entity (update 11003 installs it on the existing site); `expires` as timestamp instead of datetime; permissions file added |
 | 2026-11-15 | 4 | `rin2_notification_read` table (hook_schema + update 11004), read rows cleaned up on user/notification delete |
+| 2026-11-15 | 4 | D4 + D5 decided; `NotificationManager` service built, scenario-checked via drush (kernel test still to do) |
