@@ -4,3 +4,10 @@ entity.rin2_notification.collection:
   parent: system.admin_content
   route_name: entity.rin2_notification.collection
   weight: 20
+
+rin2_notify.user_list:
+  title: 'Users and notifications'
+  description: 'Unread notifications per user; impersonate a user.'
+  parent: entity.user.collection
+  route_name: rin2_notify.user_list
+  weight: 20

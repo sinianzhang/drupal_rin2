@@ -19,8 +19,9 @@
   margin-block: 0.5rem;
 }
 
-/* Status cell: make expired rows visibly secondary. */
-.rin2-notification--expired td {
+/* Make expired notifications and blocked users visibly secondary. */
+.rin2-notification--expired td,
+.rin2-user--blocked td {
   color: #6b6b6b;
 }
 

@@ -8,3 +8,14 @@ entity.rin2_notification.collection:
     _permission: 'administer rin2 notifications'
   options:
     _admin_route: true
+
+# Users with notification settings and unread count, plus impersonate.
+rin2_notify.user_list:
+  path: '/admin/people/notifications'
+  defaults:
+    _controller: '\Drupal\rin2_notify\Controller\UserListController::list'
+    _title: 'Users and notifications'
+  requirements:
+    _permission: 'administer rin2 notifications'
+  options:
+    _admin_route: true

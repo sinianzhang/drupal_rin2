@@ -25,7 +25,7 @@ How to use this file: work through the steps in order. Each step ends with **Don
 | Migration on "production" users table: notification switch NOT NULL, phone nullable | Base fields added via `hook_entity_base_field_info()` + `hook_update_N()` that installs them and backfills existing rows | 3 |
 | Notifications: type, short text, expiration, destination (user / all) | Custom content entity `rin2_notification` | 4 |
 | Know when a user reads a notification | Custom table `rin2_notification_read` (uid, notification id, read time) | 4 |
-| Page listing users + unread count, with filters | Admin page (View or custom list) with exposed filters | 7 |
+| Page listing users + unread count, with filters | Admin page `/admin/people/notifications` (custom controller, client-side filters) | 7 |
 | Impersonate a user | Contrib `drupal/masquerade` | 2, 7 |
 | Home page with bell + unread counter; click → list; click item → mark read | Custom block + controller routes (AJAX, CSRF-protected) | 8 |
 | User notification settings form (on/off, email, phone) | Custom form, phone validated with `giggsey/libphonenumber-for-php` | 9 |
@@ -108,7 +108,8 @@ How to use this file: work through the steps in order. Each step ends with **Don
 
 ## Step 6: Post notifications + posted-notifications list ✅ (browser check of the JS filters pending)
 
-- [x] Add form for `rin2_notification` (admin only) at `/admin/content/notifications/add` (menu: Content → Post notification); destination radios "All users" / "A specific user" + user autocomplete shown via `#states`, required server-side when "specific"; after saving → detail page
+- [x] Add form for `rin2_notification` (admin only) at `/admin/content/notifications/add` (menu: Content → Post notification); destination radios "All users" / "Specific users" + a user table with checkboxes (name, email) shown via `#states`, at least one user required server-side when "specific"; after saving → detail page
+  - **Change (2026-11-15): several recipients per notification.** `target_uid` has unlimited cardinality, stored in `rin2_notification__target_uid` (one row per recipient; no rows = all users); update 11005 moved existing recipients
   - **Decision (2026-11-15): notifications are write-once.** No edit and no delete: `NotificationAccessControlHandler` forbids `update`/`delete` for everyone (incl. uid 1, JSON:API); no edit/delete routes exist
 - [x] Validation: expiry must be in the future (only on create, since there is no editing): constraint plugin `Rin2ExpiresInFuture` on the `expires` field, so it applies to every save path that validates (form, API); message ≤ 255 chars (already enforced by `max_length`)
 - [x] Admin list `/admin/content/notifications` (custom controller `NotificationListController`): columns type, message (links to detail page), destination, posted, expires, status (active/expired), read count (`NotificationManager::getReadCounts()`, one grouped query); newest first; "Notifications" tab under Content + "Post notification" button; cache: list + read tags, max-age until the next notification expires
@@ -120,15 +121,16 @@ How to use this file: work through the steps in order. Each step ends with **Don
 **Done when:** an admin can post a notification and find it with each filter.
 **Commits:** `Add notification add form`, `Add posted notifications admin view with filters`, `Add notification detail page`
 
-## Step 7: Users list with unread count + impersonate
+## Step 7: Users list with unread count + impersonate ✅ (browser check of the JS filters pending)
 
-- [ ] Admin page `/admin/rin2/users`: name, email, phone, notifications on/off, **unread count**
-- [ ] Unread count via a custom Views field plugin that calls `NotificationManager` (or a custom controller table; **(decide)** Views is the recommendation)
-- [ ] Exposed filters: name/email contains, notifications on/off, "has unread"
-- [ ] Row actions: **Impersonate** (masquerade link → user home page), **Edit settings** (Step 9 form)
+- [x] Admin page `/admin/people/notifications` (instead of `/admin/rin2/users`: "Notifications" tab under People, like the Content tab in Step 6; menu link under People), custom controller `UserListController`: name (links to the user), email, phone, notifications on/off, **unread count**, status (active/blocked), operations. All users except anonymous, sorted by name. Permission `administer rin2 notifications`
+- [x] Unread count (D1: custom controller, same pattern as Step 6): `NotificationManager::getUnreadCounts($uids)`, same rules as `countUnreadFor()` (incl. D5: 0 when notifications are off) in 3 queries for the whole list instead of one per user; cache: `user_list`, list + read tags, max-age until the next notification expires
+- [x] Filters (client-side, `UserFilterForm` + `js/admin-table.js`): name or email contains (searches 2 columns: `data-rin2-column="0,1"`), notifications on/off, "has unread" (new matcher `positive`: yes = count > 0), status active/blocked, Reset; sorting (unread numeric via `data-order`; operations column not sortable via `th[data-rin2-sortable="false"]`) and paging
+- [x] Row actions: **Impersonate** (masquerade link with CSRF token, only where masquerade allows it: not yourself, not while masquerading, and not for blocked users) → front page for now (**@todo Step 8:** `/home`); **Edit settings** → core user edit form with destination back to the list (**@todo Step 9:** settings form). `masquerade` added to the module dependencies
 
-**Done when:** the list shows correct counts for the hand-made test data, and clicking Impersonate lands on that user's home page.
-**Commits:** `Add unread count Views field plugin`, `Add users overview page with filters and impersonate action`
+**Done when:** ✅ counts match `countUnreadFor()` for the hand-made users (admin 1, alice 1, bob 2, tom 2), ✅ Impersonate switches to the user and lands on the front page (Step 8 changes it to the home page).
+**Tests:** kernel `testGetUnreadCounts()` (batch equals single count: targeted, several recipients, read, expired, notifications off, anonymous/unknown uid); functional `tests/src/Functional/UserListTest.php` (row contents, blocked/off users, filter markup, impersonate links + switching, edit link, access). 26 tests green. JS filtering itself: check by hand in the browser.
+**Commits:** `[TASK] fix functional tests for multi-recipient notifications`, `[TASK] batch unread counts per user`, `[TASK] users list with unread count, filters and impersonate`
 
 ## Step 8: User home page + bell
 
@@ -185,7 +187,7 @@ How to use this file: work through the steps in order. Each step ends with **Don
 
 | # | Question | Recommendation | Your choice |
 |---|---|---|---|
-| D1 | Unread-count list: Views plugin or custom controller? | Views (filters for free) | |
+| D1 | Unread-count list: Views plugin or custom controller? | Views (filters for free) | **Custom controller** (2026-11-15), same pattern and client-side filters as the Step 6 list |
 | D2 | Bell when notifications are switched off | Hide bell entirely | |
 | D3 | Default phone region for numbers without `+` | IT (spec author looks Italian) or DE | |
 | D4 | "For all" notifications: also visible to users created **after** posting? | Yes (simplest, matches "for all") | **Yes.** "For all" means everybody, including users created later (except users with notifications off, see D5) |
@@ -209,3 +211,5 @@ How to use this file: work through the steps in order. Each step ends with **Don
 | 2026-11-15 | 6.1 ✅ | Add form with destination radios, write-once access handler (no edit/delete), menu link, functional test (12 tests green) |
 | 2026-11-15 | 6.2 + 6.3 ✅ | Expiry-in-future constraint (create only); admin list as custom controller with status + read count, Content tab, action button (16 tests green). Filters (6.4) and detail page (6.5) still open |
 | 2026-11-15 | 6.4 + 6.5 ✅ | Client-side filters/sorting/paging with simple-datatables 10.3.0 (local copy), detail page with status + readers table (18 tests green). Step 6 done pending a manual browser check of the filters |
+| 2026-11-15 | 6 | Several recipients per notification (`target_uid` unlimited, own table `rin2_notification__target_uid`, update 11005); functional tests fixed for it (20 tests green) |
+| 2026-11-15 | 7 ✅ | D1 decided (custom controller). Users list `/admin/people/notifications` with batch unread counts, client-side filters (name/email, notifications, has unread, status), Impersonate (→ front page until Step 8) and Edit settings (→ user edit form until Step 9); 26 tests green. Pending: manual browser check of the filters |

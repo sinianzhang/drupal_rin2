@@ -4,3 +4,10 @@ entity.rin2_notification.collection:
   route_name: entity.rin2_notification.collection
   base_route: system.admin_content
   weight: 20
+
+# "Notifications" tab on /admin/people, next to List/Permissions/Roles.
+rin2_notify.user_list:
+  title: 'Notifications'
+  route_name: rin2_notify.user_list
+  base_route: entity.user.collection
+  weight: 20

@@ -6,3 +6,4 @@ core_version_requirement: ^11
 dependencies:
   - drupal:options
   - drupal:user
+  - masquerade:masquerade
