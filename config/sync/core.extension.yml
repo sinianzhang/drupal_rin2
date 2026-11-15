@@ -12,6 +12,7 @@ module:
   contextual: 0
   datetime: 0
   dblog: 0
+  devel: 0
   dynamic_page_cache: 0
   editor: 0
   field: 0
@@ -30,7 +31,6 @@ module:
   navigation: 0
   node: 0
   options: 0
-  page_cache: 0
   path: 0
   path_alias: 0
   rin2_notify: 0
