@@ -5,7 +5,12 @@ declare(strict_types=1);
 namespace Drupal\rin2_notify;
 
 use Drupal\Component\Datetime\TimeInterface;
+use Drupal\Core\Cache\CacheableMetadata;
+use Drupal\Core\Cache\CacheTagsInvalidatorInterface;
 use Drupal\Core\Database\Connection;
+use Drupal\Core\Database\Query\ConditionInterface;
+use Drupal\Core\Database\Query\Merge;
+use Drupal\Core\Database\Query\SelectInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Session\AccountInterface;
 
@@ -23,7 +28,43 @@ final class NotificationManager implements NotificationManagerInterface {
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly Connection $database,
     private readonly TimeInterface $time,
+    private readonly CacheTagsInvalidatorInterface $cacheTagsInvalidator,
   ) {}
+
+  /**
+   * {@inheritdoc}
+   */
+  public function readTagFor(int|string $uid): string {
+    return self::READ_TAG . ':' . $uid;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getCacheableMetadataFor(AccountInterface $user): CacheableMetadata {
+    $metadata = (new CacheableMetadata())
+      ->addCacheContexts(['user'])
+      ->addCacheTags(['rin2_notification_list']);
+    if ($user->isAnonymous()) {
+      return $metadata;
+    }
+    $metadata->addCacheTags(['user:' . $user->id(), $this->readTagFor($user->id())]);
+    if (!$this->notificationsEnabled($user)) {
+      return $metadata;
+    }
+    // Expiry is time-based, so no tag is invalidated when it happens: let the
+    // cached output live only until the next visible notification expires.
+    $query = $this->database->select('rin2_notification', 'n');
+    $query->addExpression('MIN([n].[expires])', 'next_expiry');
+    $next_expiry = $query->condition('n.expires', $this->now(), '>')
+      ->condition($this->targetCondition($query, $user->id()))
+      ->execute()
+      ->fetchField();
+    if ($next_expiry) {
+      $metadata->setCacheMaxAge((int) $next_expiry - $this->now());
+    }
+    return $metadata;
+  }
 
   /**
    * {@inheritdoc}
@@ -56,11 +97,8 @@ final class NotificationManager implements NotificationManagerInterface {
     // One COUNT query: the admin users list calls this once per row.
     $query = $this->database->select('rin2_notification', 'n');
     $query->leftJoin(self::READ_TABLE, 'r', '[r].[notification_id] = [n].[id] AND [r].[uid] = :uid', [':uid' => $user->id()]);
-    $target = $query->orConditionGroup()
-      ->condition('n.target_uid', $user->id())
-      ->isNull('n.target_uid');
     $query->condition('n.expires', $this->now(), '>')
-      ->condition($target)
+      ->condition($this->targetCondition($query, $user->id()))
       ->isNull('r.uid');
     return (int) $query->countQuery()->execute()->fetchField();
   }
@@ -84,7 +122,7 @@ final class NotificationManager implements NotificationManagerInterface {
       return FALSE;
     }
     // Inserts once; an existing row is left as is, keeping the first read time.
-    $this->database->merge(self::READ_TABLE)
+    $status = $this->database->merge(self::READ_TABLE)
       ->keys([
         'uid' => $user->id(),
         'notification_id' => $notification->id(),
@@ -95,6 +133,9 @@ final class NotificationManager implements NotificationManagerInterface {
         'read_at' => $this->now(),
       ])
       ->execute();
+    if ($status === Merge::STATUS_INSERT) {
+      $this->cacheTagsInvalidator->invalidateTags([self::READ_TAG, $this->readTagFor($user->id())]);
+    }
     return TRUE;
   }
 
@@ -109,6 +150,15 @@ final class NotificationManager implements NotificationManagerInterface {
       ->range(0, 1)
       ->execute()
       ->fetchField();
+  }
+
+  /**
+   * Condition: addressed to the user, or to all users (no target).
+   */
+  private function targetCondition(SelectInterface $query, int|string $uid): ConditionInterface {
+    return $query->orConditionGroup()
+      ->condition('n.target_uid', $uid)
+      ->isNull('n.target_uid');
   }
 
   /**

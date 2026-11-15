@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\rin2_notify;
 
+use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Session\AccountInterface;
 
 /**
@@ -20,6 +21,34 @@ use Drupal\Core\Session\AccountInterface;
  * notifications back on shows every unexpired notification again.
  */
 interface NotificationManagerInterface {
+
+  /**
+   * Cache tag invalidated whenever any user reads a notification.
+   *
+   * For output that shows read status across users (admin lists).
+   */
+  public const READ_TAG = 'rin2_notification_read';
+
+  /**
+   * Returns the cache tag invalidated when the given user reads something.
+   */
+  public function readTagFor(int|string $uid): string;
+
+  /**
+   * Cache metadata for output built from this user's notifications.
+   *
+   * Add it to every render array that shows getVisibleFor(), countUnreadFor()
+   * or isRead() results for the user, e.g. the bell block:
+   * @code
+   * $manager->getCacheableMetadataFor($user)->applyTo($build);
+   * @endcode
+   * - context "user": the output differs per user;
+   * - tag "rin2_notification_list": any notification posted/edited/deleted;
+   * - tag "user:UID": notifications_enabled switched on or off;
+   * - tag "rin2_notification_read:UID": the user read something;
+   * - max-age: until the next visible notification expires.
+   */
+  public function getCacheableMetadataFor(AccountInterface $user): CacheableMetadata;
 
   /**
    * Returns the notifications visible to a user, newest first.

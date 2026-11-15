@@ -71,10 +71,10 @@ How to use this file: work through the steps in order. Each step ends with **Don
 
 **Done when:** ✅ `SHOW CREATE TABLE users_field_data` → `notifications_enabled tinyint(4) NOT NULL`, `phone varchar(32) DEFAULT NULL`; ✅ existing users backfilled with `1`; ✅ raw `SET notifications_enabled = NULL` rejected (error 1048); ✅ `updatedb:status` clean, entity definitions up to date; ✅ phpcs clean.
 **Commits:** `Scaffold rin2_notify module`, `[TASK] 2 new fields in user table`, + NOT NULL fix (11002) and design note (to commit)
-**Open:** fresh-install path (NOT NULL without running updates) not yet verified, so add a kernel test in Step 4/11.
+**Open:** ~~fresh-install path (NOT NULL without running updates) not yet verified~~ → covered by `NotificationManagerTest::testNotificationsEnabledIsNotNullOnInstall()` (Step 4).
 **Local data:** demo users `alice`, `bob`, `tom` created by hand (uid 2–4); Step 5 seeding will replace them.
 
-## Step 4: Notification entity and read tracking
+## Step 4: Notification entity and read tracking ✅
 
 - [x] Content entity `rin2_notification`, fields:
   - `type`: list: `marketing`, `invoices`, `system` (required)
@@ -89,11 +89,12 @@ How to use this file: work through the steps in order. Each step ends with **Don
   - `markRead($notification, $user)` (idempotent; does nothing for users with `notifications_enabled = 0`, so they never get a row in `rin2_notification_read`)
   - `isRead($notification, $user)`
   - `isVisibleTo($notification, $user)` (added: used by `markRead()`, and by the Step 8 route for access)
-- [ ] Cache tags/contexts so counters update after posting or reading
+- [x] Cache tags/contexts so counters update after posting or reading: `getCacheableMetadataFor($user)` → context `user`; tags `rin2_notification_list` (core, any post/edit/delete), `user:UID` (notifications switched on/off), `rin2_notification_read:UID` (invalidated by `markRead()` on first read); max-age = seconds until the next visible notification expires. Global tag `rin2_notification_read` for admin read counts, also invalidated by the delete cleanups
 - [x] Permissions: `administer rin2 notifications`, `view own rin2 notifications` (`rin2_notify.permissions.yml`)
 
-**Done when:** a kernel test proves visibility rules (expired hidden, targeted vs all, read/unread counts).
+**Done when:** ✅ kernel test `tests/src/Kernel/NotificationManagerTest.php` (9 tests, 112 assertions) proves visibility rules (expired hidden, targeted vs all, "for all" incl. later users), read/unread counts, idempotent `markRead()`, notifications-off rules (D5), delete cleanup, cache metadata + tag invalidation, and fresh-install NOT NULL on `notifications_enabled`; ✅ phpcs clean; ✅ `updatedb:status` clean.
 **Commits:** `Add notification entity`, `Add read-status table and NotificationManager service`, `Add kernel tests for notification visibility rules`
+**Notes:** `drupal:options` added to `rin2_notify.info.yml` dependencies (the `type` field is `list_string`). Run tests: `ddev exec vendor/bin/phpunit -c web/core web/modules/custom/rin2_notify`.
 
 ## Step 5: Seed data
 
@@ -198,3 +199,4 @@ How to use this file: work through the steps in order. Each step ends with **Don
 | 2026-11-15 | 4 | `rin2_notification` content entity (update 11003 installs it on the existing site); `expires` as timestamp instead of datetime; permissions file added |
 | 2026-11-15 | 4 | `rin2_notification_read` table (hook_schema + update 11004), read rows cleaned up on user/notification delete |
 | 2026-11-15 | 4 | D4 + D5 decided; `NotificationManager` service built, scenario-checked via drush (kernel test still to do) |
+| 2026-11-15 | 4 ✅ | Step 4 complete: cache metadata + tag invalidation, kernel test (9 tests green, also closes Step 3 fresh-install check), `options` dependency |

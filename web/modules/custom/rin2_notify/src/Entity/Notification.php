@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\rin2_notify\Entity;
 
+use Drupal\Core\Cache\Cache;
 use Drupal\Core\Entity\Attribute\ContentEntityType;
 use Drupal\Core\Entity\ContentEntityBase;
 use Drupal\Core\Entity\EntityStorageInterface;
@@ -11,6 +12,7 @@ use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Field\BaseFieldDefinition;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\rin2_notify\NotificationInterface;
+use Drupal\rin2_notify\NotificationManagerInterface;
 use Drupal\user\EntityOwnerTrait;
 use Drupal\user\UserInterface;
 
@@ -109,6 +111,9 @@ final class Notification extends ContentEntityBase implements NotificationInterf
     \Drupal::database()->delete('rin2_notification_read')
       ->condition('notification_id', array_keys($entities), 'IN')
       ->execute();
+    // Per-user output is covered by the rin2_notification_list tag that core
+    // invalidates on delete; admin read counts use the global read tag.
+    Cache::invalidateTags([NotificationManagerInterface::READ_TAG]);
   }
 
   /**

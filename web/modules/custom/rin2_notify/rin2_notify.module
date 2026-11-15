@@ -7,10 +7,12 @@
 
 declare(strict_types=1);
 
+use Drupal\Core\Cache\Cache;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Field\BaseFieldDefinition;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\user\UserInterface;
+use Drupal\rin2_notify\NotificationManagerInterface;
 use Drupal\rin2_notify\Rin2UserStorageSchema;
 
 /**
@@ -75,4 +77,6 @@ function rin2_notify_user_delete(UserInterface $account): void {
   \Drupal::database()->delete('rin2_notification_read')
     ->condition('uid', $account->id())
     ->execute();
+  // Admin read counts change; the user's own tags are invalidated by core.
+  Cache::invalidateTags([NotificationManagerInterface::READ_TAG]);
 }

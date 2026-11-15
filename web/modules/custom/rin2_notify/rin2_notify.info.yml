@@ -4,4 +4,5 @@ description: 'One-time on-screen notifications for users (RIN2 assignment).'
 package: RIN2
 core_version_requirement: ^11
 dependencies:
+  - drupal:options
   - drupal:user
