@@ -36,3 +36,19 @@ function rin2_notify_update_11002(): string {
   $manager->updateFieldStorageDefinition($definition);
   return (string) t('Made users_field_data.notifications_enabled NOT NULL.');
 }
+
+/**
+ * Install the rin2_notification entity type (creates its table).
+ */
+function rin2_notify_update_11003(): string {
+  // The module is already enabled, so a newly added entity type is not
+  // installed automatically. Fresh installs create the table on module enable.
+  $manager = \Drupal::entityDefinitionUpdateManager();
+  if ($manager->getEntityType('rin2_notification')) {
+    return (string) t('Notification entity type already installed.');
+  }
+  $entity_type_manager = \Drupal::entityTypeManager();
+  $entity_type_manager->clearCachedDefinitions();
+  $manager->installEntityType($entity_type_manager->getDefinition('rin2_notification'));
+  return (string) t('Installed the rin2_notification entity type.');
+}

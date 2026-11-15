@@ -76,10 +76,10 @@ How to use this file: work through the steps in order. Each step ends with **Don
 
 ## Step 4: Notification entity and read tracking
 
-- [ ] Content entity `rin2_notification`, fields:
+- [x] Content entity `rin2_notification`, fields:
   - `type`: list: `marketing`, `invoices`, `system` (required)
   - `message`: short text, max 255 (required)
-  - `expires`: datetime (required)
+  - `expires`: timestamp (required); stored as a Unix timestamp so "not expired" is an integer comparison
   - `target_uid`: entity reference to user, **empty = all users**
   - `created`, `uid` (author)
 - [ ] Table `rin2_notification_read` via `hook_schema()`: `uid`, `notification_id`, `read_at`; primary key (uid, notification_id)
@@ -89,7 +89,7 @@ How to use this file: work through the steps in order. Each step ends with **Don
   - `markRead($notification, $user)` (idempotent)
   - `isRead($notification, $user)`
 - [ ] Cache tags/contexts so counters update after posting or reading
-- [ ] Permissions: `administer rin2 notifications`, `view own rin2 notifications`
+- [x] Permissions: `administer rin2 notifications`, `view own rin2 notifications` (`rin2_notify.permissions.yml`)
 
 **Done when:** a kernel test proves visibility rules (expired hidden, targeted vs all, read/unread counts).
 **Commits:** `Add notification entity`, `Add read-status table and NotificationManager service`, `Add kernel tests for notification visibility rules`
@@ -194,3 +194,4 @@ How to use this file: work through the steps in order. Each step ends with **Don
 | 2026-11-09 | 1 ✅ | Step 1 complete: dev tooling installed, phpcs + PHPUnit env configured, baseline config exported (137 items), site renamed |
 | 2026-11-09 | 2 ✅ | masquerade 2.2.0 enabled (admin-only via is_admin), libphonenumber 9.0.43, devel 5.5.0 (dev, not enabled) |
 | 2026-11-09 | 3 ✅ | rin2_notify module; users.notifications_enabled (NOT NULL, via custom storage schema, updates 11001+11002) and users.phone (nullable); design note |
+| 2026-11-15 | 4 | `rin2_notification` content entity (update 11003 installs it on the existing site); `expires` as timestamp instead of datetime; permissions file added |

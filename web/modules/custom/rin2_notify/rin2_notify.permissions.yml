@@ -1,0 +1,8 @@
+administer rin2 notifications:
+  title: 'Administer notifications'
+  description: 'Post, edit and delete notifications, and see who has read them.'
+  restrict access: true
+
+view own rin2 notifications:
+  title: 'View own notifications'
+  description: 'See notifications addressed to you or to all users, and mark them as read.'
