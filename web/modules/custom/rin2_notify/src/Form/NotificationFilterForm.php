@@ -45,7 +45,7 @@ final class NotificationFilterForm extends FormBase {
       '#type' => 'search',
       '#title' => $this->t('Search'),
       '#size' => 30,
-      '#attributes' => ['data-rin2-column' => '0,1,2,3,4,5', 'data-rin2-match' => 'contains'],
+      '#attributes' => ['data-rin2-column' => '0,1,2,3,4', 'data-rin2-match' => 'contains'],
     ];
 
     return $form;

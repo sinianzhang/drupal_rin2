@@ -13,11 +13,11 @@ use Drupal\rin2_notify\NotificationInterface;
 use Drupal\rin2_notify\NotificationManagerInterface;
 
 /**
- * Lists all posted notifications for admins.
+ * Lists the posted notifications that have not expired yet, for admins.
  *
- * Renders every notification as one table row; filtering, sorting and paging
- * happen client-side (simple-datatables via js/admin-table.js). Column order
- * must match the data-rin2-column indexes in NotificationFilterForm.
+ * Renders each one as a table row; filtering, sorting and paging happen
+ * client-side (simple-datatables via js/admin-table.js). Column order must
+ * match the data-rin2-column indexes in NotificationFilterForm.
  */
 final class NotificationListController extends ControllerBase {
 
@@ -31,19 +31,22 @@ final class NotificationListController extends ControllerBase {
    * Builds the notifications table.
    */
   public function list(): array {
+    $now = $this->time->getRequestTime();
     $storage = $this->entityTypeManager()->getStorage('rin2_notification');
+    // Expired notifications are not listed (same rule as
+    // NotificationInterface::isExpired(): expired when expires <= now).
     $ids = $storage->getQuery()
       ->accessCheck(FALSE)
+      ->condition('expires', $now, '>')
       ->sort('created', 'DESC')
       ->sort('id', 'DESC')
       ->execute();
     /** @var \Drupal\rin2_notify\NotificationInterface[] $notifications */
     $notifications = $storage->loadMultiple($ids);
     $read_counts = $this->notificationManager->getReadCounts(array_keys($notifications));
-    $now = $this->time->getRequestTime();
 
     // Rebuild when notifications are posted or read; dates follow the
-    // admin's timezone; status flips when the next notification expires.
+    // admin's timezone.
     $cache = (new CacheableMetadata())
       ->addCacheTags(['rin2_notification_list', NotificationManagerInterface::READ_TAG])
       ->addCacheContexts(['user.permissions', 'timezone']);
@@ -51,13 +54,8 @@ final class NotificationListController extends ControllerBase {
     $rows = [];
     $recipients = [];
     foreach ($notifications as $id => $notification) {
-      $expired = $notification->isExpired($now);
-      if (!$expired) {
-        $cache->mergeCacheMaxAge($notification->getExpires() - $now);
-      }
       $names = [];
       foreach ($notification->getTargetUsers() as $user) {
-        $cache->addCacheableDependency($user);
         $names[] = $recipients[$user->id()] = $user->getDisplayName();
       }
       // Recipients deleted since posting are not loaded; keep them visible.
@@ -82,10 +80,8 @@ final class NotificationListController extends ControllerBase {
             'data' => $this->dateFormatter->format($notification->getExpires(), 'short'),
             'data-order' => $notification->getExpires(),
           ],
-          'status' => $expired ? $this->t('Expired') : $this->t('Active'),
           'read' => ['data' => $read_count, 'data-order' => $read_count],
         ],
-        'class' => [$expired ? 'rin2-notification--expired' : 'rin2-notification--active'],
       ];
     }
 
@@ -98,11 +94,10 @@ final class NotificationListController extends ControllerBase {
         'destination' => $this->t('Destination'),
         'created' => $this->t('Posted'),
         'expires' => $this->t('Expires'),
-        'status' => $this->t('Status'),
         'read' => $this->t('Read by'),
       ],
       '#rows' => $rows,
-      '#empty' => $this->t('No notifications have been posted yet.'),
+      '#empty' => $this->t('There are no active notifications.'),
       '#attributes' => [
         'class' => ['rin2-notifications-table'],
         'data-rin2-table' => 'notifications',

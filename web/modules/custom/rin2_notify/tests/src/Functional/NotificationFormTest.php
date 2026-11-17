@@ -154,7 +154,7 @@ final class NotificationFormTest extends BrowserTestBase {
   }
 
   /**
-   * The admin list shows every notification with status and read count.
+   * The admin list shows active notifications with read count; expired hidden.
    */
   public function testList(): void {
     $now = \Drupal::time()->getRequestTime();
@@ -182,42 +182,21 @@ final class NotificationFormTest extends BrowserTestBase {
     $this->assertSession()->statusCodeEquals(200);
     $this->assertSession()->linkExists('Post notification');
 
+    // Only the active notification; "Old maintenance" has expired.
     $rows = $this->getSession()->getPage()->findAll('css', 'table.rin2-notifications-table tbody tr');
-    $this->assertCount(2, $rows);
+    $this->assertCount(1, $rows);
+    $this->assertSession()->pageTextNotContains('Old maintenance');
     // Cells without the two date columns (Posted, Expires).
-    $cells = static function ($row): array {
-      $texts = array_map(static fn ($td): string => trim($td->getText()), $row->findAll('css', 'td'));
-      unset($texts[3], $texts[4]);
-      return array_values($texts);
-    };
-    // Newest first: "Old maintenance" was created last.
-    $this->assertSame(['System', 'Old maintenance', 'All users', 'Expired', '0'], $cells($rows[0]));
-    $this->assertSame(['Marketing', 'Spring sale', 'bob', 'Active', '1'], $cells($rows[1]));
+    $texts = array_map(static fn ($td): string => trim($td->getText()), $rows[0]->findAll('css', 'td'));
+    unset($texts[3], $texts[4]);
+    $this->assertSame(['Marketing', 'Spring sale', 'bob', '1'], array_values($texts));
 
-    // Filter inputs for the client-side filtering (js/admin-table.js).
-    $page = $this->getSession()->getPage();
+    // One search box for the client-side filtering (js/admin-table.js),
+    // searching the text columns (not the read count).
     $this->assertSession()->elementExists('css', 'table[data-rin2-table="notifications"]');
-    $this->assertSession()->elementExists('css', '[data-rin2-filters="notifications"] input[data-rin2-column="1"][data-rin2-match="contains"]');
-    // Destination cells list several recipients, so that filter matches one
-    // item of the comma-separated list.
-    $filters = [
-      'type' => [0, 'exact'],
-      'destination' => [2, 'list'],
-      'status' => [5, 'exact'],
-    ];
-    foreach ($filters as $name => [$column, $match]) {
-      $select = $page->find('css', "select[name=\"$name\"]");
-      $this->assertNotNull($select, "Filter $name exists.");
-      $this->assertSame((string) $column, $select->getAttribute('data-rin2-column'));
-      $this->assertSame($match, $select->getAttribute('data-rin2-match'));
-    }
-    // Option values equal the cell texts they must match exactly.
-    $this->assertSession()->optionExists('destination', 'All users');
-    $this->assertSession()->optionExists('destination', 'bob');
-    $this->assertSession()->optionExists('type', 'Marketing');
-    $this->assertSession()->optionExists('status', 'Expired');
+    $this->assertSession()->elementExists('css', '[data-rin2-filters="notifications"] input[data-rin2-column="0,1,2,3,4"][data-rin2-match="contains"]');
     // Dates sort by timestamp.
-    $this->assertSame((string) $active->getExpires(), $rows[1]->find('css', 'td:nth-child(5)')->getAttribute('data-order'));
+    $this->assertSame((string) $active->getExpires(), $rows[0]->find('css', 'td:nth-child(5)')->getAttribute('data-order'));
     $this->assertSession()->responseContains('simple-datatables/simple-datatables.js');
     $this->assertSession()->responseContains('rin2_notify/js/admin-table.js');
 
