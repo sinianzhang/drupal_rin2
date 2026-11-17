@@ -40,49 +40,14 @@ final class NotificationFilterForm extends FormBase {
       'data-rin2-filters' => 'notifications',
       'role' => 'search',
     ];
-    $any = $this->t('- Any -');
 
     $form['message'] = [
       '#type' => 'search',
-      '#title' => $this->t('Message contains'),
+      '#title' => $this->t('Search'),
       '#size' => 30,
-      '#attributes' => ['data-rin2-column' => 1, 'data-rin2-match' => 'contains'],
+      '#attributes' => ['data-rin2-column' => '0,1,2,3,4,5', 'data-rin2-match' => 'contains'],
     ];
-    $form['type'] = [
-      '#type' => 'select',
-      '#title' => $this->t('Type'),
-      '#options' => array_combine(NotificationInterface::TYPES, NotificationInterface::TYPES),
-      '#empty_option' => $any,
-      '#attributes' => ['data-rin2-column' => 0, 'data-rin2-match' => 'exact'],
-    ];
-    $all_users = (string) $this->t('All users');
-    $destinations = [$all_users => $all_users];
-    if ($recipients) {
-      natcasesort($recipients);
-      $destinations[(string) $this->t('Specific user')] = array_combine($recipients, $recipients);
-    }
-    $form['destination'] = [
-      '#type' => 'select',
-      '#title' => $this->t('Destination'),
-      '#options' => $destinations,
-      '#empty_option' => $any,
-      '#attributes' => ['data-rin2-column' => 2, 'data-rin2-match' => 'list'],
-    ];
-    $active = (string) $this->t('Active');
-    $expired = (string) $this->t('Expired');
-    $form['status'] = [
-      '#type' => 'select',
-      '#title' => $this->t('Status'),
-      '#options' => [$active => $active, $expired => $expired],
-      '#empty_option' => $any,
-      '#attributes' => ['data-rin2-column' => 5, 'data-rin2-match' => 'exact'],
-    ];
-    $form['actions'] = ['#type' => 'actions'];
-    $form['actions']['reset'] = [
-      '#type' => 'button',
-      '#value' => $this->t('Reset'),
-      '#attributes' => ['data-rin2-filter-reset' => TRUE],
-    ];
+
     return $form;
   }
 

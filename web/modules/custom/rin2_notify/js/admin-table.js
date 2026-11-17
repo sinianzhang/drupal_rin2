@@ -92,8 +92,10 @@
         const dataTable = new window.simpleDatatables.DataTable(table, {
           // Our own filter inputs replace the built-in search box.
           searchable: false,
-          perPage: 25,
-          perPageSelect: [10, 25, 50, 100],
+          sortable: false,
+          paging: false,
+          //perPage: 25,
+          //perPageSelect: [10, 25, 50, 100],
           columns: customColumns,
           labels: {
             perPage: Drupal.t('per page'),

@@ -32,47 +32,14 @@ final class UserFilterForm extends FormBase {
       'data-rin2-filters' => 'users',
       'role' => 'search',
     ];
-    $any = $this->t('- Any -');
 
     $form['user'] = [
       '#type' => 'search',
-      '#title' => $this->t('Name or email contains'),
+      '#title' => $this->t('Search'),
       '#size' => 30,
-      '#attributes' => ['data-rin2-column' => '0,1', 'data-rin2-match' => 'contains'],
+      '#attributes' => ['data-rin2-column' => '0,1,2,3,4,5', 'data-rin2-match' => 'contains'],
     ];
-    // Option values equal the cell texts they must match exactly.
-    $on = (string) $this->t('On');
-    $off = (string) $this->t('Off');
-    $form['notifications'] = [
-      '#type' => 'select',
-      '#title' => $this->t('Notifications'),
-      '#options' => [$on => $on, $off => $off],
-      '#empty_option' => $any,
-      '#attributes' => ['data-rin2-column' => 3, 'data-rin2-match' => 'exact'],
-    ];
-    // "positive" compares the count cell: "yes" means > 0, "no" means 0.
-    $form['unread'] = [
-      '#type' => 'select',
-      '#title' => $this->t('Has unread'),
-      '#options' => ['yes' => $this->t('Yes'), 'no' => $this->t('No')],
-      '#empty_option' => $any,
-      '#attributes' => ['data-rin2-column' => 4, 'data-rin2-match' => 'positive'],
-    ];
-    $active = (string) $this->t('Active');
-    $blocked = (string) $this->t('Blocked');
-    $form['status'] = [
-      '#type' => 'select',
-      '#title' => $this->t('Status'),
-      '#options' => [$active => $active, $blocked => $blocked],
-      '#empty_option' => $any,
-      '#attributes' => ['data-rin2-column' => 5, 'data-rin2-match' => 'exact'],
-    ];
-    $form['actions'] = ['#type' => 'actions'];
-    $form['actions']['reset'] = [
-      '#type' => 'button',
-      '#value' => $this->t('Reset'),
-      '#attributes' => ['data-rin2-filter-reset' => TRUE],
-    ];
+    
     return $form;
   }
 
