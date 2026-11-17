@@ -23,7 +23,6 @@ final class UserListController extends ControllerBase {
 
   public function __construct(
     private readonly NotificationManagerInterface $notificationManager,
-    private readonly TimeInterface $time,
   ) {}
 
   /**
@@ -46,10 +45,6 @@ final class UserListController extends ControllerBase {
     $cache = (new CacheableMetadata())
       ->addCacheTags(['user_list', 'rin2_notification_list', NotificationManagerInterface::READ_TAG])
       ->addCacheContexts(['user', 'user.permissions']);
-    $next_expiry = $this->nextExpiry();
-    if ($next_expiry !== NULL) {
-      $cache->setCacheMaxAge($next_expiry - $this->time->getRequestTime());
-    }
 
     $on = $this->t('On');
     $off = $this->t('Off');
@@ -128,19 +123,4 @@ final class UserListController extends ControllerBase {
     }
     return $operations;
   }
-
-  /**
-   * Returns when the next notification expires, or NULL if none is active.
-   */
-  private function nextExpiry(): ?int {
-    $result = $this->entityTypeManager()->getStorage('rin2_notification')
-      ->getAggregateQuery()
-      ->accessCheck(FALSE)
-      ->condition('expires', $this->time->getRequestTime(), '>')
-      ->aggregate('expires', 'MIN')
-      ->execute();
-    $min = $result[0]['expires_min'] ?? NULL;
-    return $min === NULL ? NULL : (int) $min;
-  }
-
 }
