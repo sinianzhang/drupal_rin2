@@ -5,8 +5,20 @@ entity.rin2_notification.collection:
   route_name: entity.rin2_notification.collection
   weight: 20
 
+# Navigation sidebar: its "Content" section is a separate menu named "content"
+# (NavigationContentLinks); it hides system.admin_content and its children
+# from the admin menu, so the link above does not show there.
+rin2_notify.navigation.notifications:
+  title: 'Notifications'
+  route_name: entity.rin2_notification.collection
+  menu_name: content
+  # Child of "Content": the sidebar then shows a flyout whose header still
+  # links to /admin/content.
+  parent: navigation.content
+  weight: 20
+
 rin2_notify.user_list:
-  title: 'Users and notifications'
+  title: 'Notifications'
   description: 'Unread notifications per user; impersonate a user.'
   parent: entity.user.collection
   route_name: rin2_notify.user_list
