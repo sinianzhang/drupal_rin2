@@ -9,6 +9,35 @@ entity.rin2_notification.collection:
   options:
     _admin_route: true
 
+# User home page, also the site front page. Anonymous visitors are sent to the
+# login form by the controller (a 403 would not offer a way in).
+rin2_notify.home:
+  path: '/home'
+  defaults:
+    _controller: '\Drupal\rin2_notify\Controller\HomeController::page'
+    _title: 'Home'
+  requirements:
+    # Open on purpose: the controller redirects anonymous users to login.
+    _access: 'TRUE'
+
+# Click on an unread notification in the bell. Drupal AJAX gets the re-rendered
+# bell back; without JS the user returns to the home page.
+rin2_notify.mark_read:
+  path: '/rin2/notification/{rin2_notification}/read'
+  defaults:
+    _controller: '\Drupal\rin2_notify\Controller\MarkReadController::markRead'
+  methods: [GET, POST]
+  requirements:
+    _permission: 'view own rin2 notifications'
+    _custom_access: '\Drupal\rin2_notify\Controller\MarkReadController::access'
+    _csrf_token: 'TRUE'
+    rin2_notification: \d+
+  options:
+    no_cache: TRUE
+    parameters:
+      rin2_notification:
+        type: entity:rin2_notification
+
 # Users with notification settings and unread count, plus impersonate.
 rin2_notify.user_list:
   path: '/admin/people/notifications'

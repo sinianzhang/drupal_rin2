@@ -106,10 +106,10 @@ final class UserListController extends ControllerBase {
     if ($user->isActive() && masquerade_target_user_access($user)) {
       $operations['impersonate'] = [
         'title' => $this->t('Impersonate'),
-        // Masquerade redirects to "destination" after switching.
-        // @todo Step 8: send to the user home page (/home) instead.
+        // Masquerade redirects to "destination" after switching: the user
+        // home page with the notification bell.
         'url' => $user->toUrl('masquerade', [
-          'query' => ['destination' => Url::fromRoute('<front>')->toString()],
+          'query' => ['destination' => Url::fromRoute('rin2_notify.home')->toString()],
         ]),
       ];
     }

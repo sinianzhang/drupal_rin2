@@ -46,7 +46,8 @@ interface NotificationManagerInterface {
    * - tag "rin2_notification_list": any notification posted/edited/deleted;
    * - tag "user:UID": notifications_enabled switched on or off;
    * - tag "rin2_notification_read:UID": the user read something;
-   * - max-age: until the next visible notification expires.
+   * - max-age 0 while notifications are enabled: expiry is time-based and
+   *   invalidates no tag, so the output is not cached.
    */
   public function getCacheableMetadataFor(AccountInterface $user): CacheableMetadata;
 
@@ -57,6 +58,17 @@ interface NotificationManagerInterface {
    *   Notifications keyed by ID.
    */
   public function getVisibleFor(AccountInterface $user): array;
+
+  /**
+   * Returns the visible notifications the user has not read yet, newest first.
+   *
+   * Notifications are one-time: once read, they are no longer shown to the
+   * user (the bell lists only these).
+   *
+   * @return \Drupal\rin2_notify\NotificationInterface[]
+   *   Notifications keyed by ID.
+   */
+  public function getUnreadFor(AccountInterface $user): array;
 
   /**
    * Counts the visible notifications the user has not read yet.

@@ -54,18 +54,9 @@ final class NotificationManager implements NotificationManagerInterface {
     if (!$this->notificationsEnabled($user)) {
       return $metadata;
     }
-    // Expiry is time-based, so no tag is invalidated when it happens: let the
-    // cached output live only until the next visible notification expires.
-    $query = $this->database->select('rin2_notification', 'n');
-    $query->addExpression('MIN([n].[expires])', 'next_expiry');
-    $next_expiry = $query->condition('n.expires', $this->now(), '>')
-      ->condition($this->targetCondition($query, $user->id()))
-      ->execute()
-      ->fetchField();
-    if ($next_expiry) {
-      $metadata->setCacheMaxAge((int) $next_expiry - $this->now());
-    }
-    return $metadata;
+    // Expiry is time-based and invalidates no tag: don't cache the output, so
+    // every request shows the notifications visible right now.
+    return $metadata->setCacheMaxAge(0);
   }
 
   /**
@@ -87,6 +78,23 @@ final class NotificationManager implements NotificationManagerInterface {
       ->notExists('target_uid');
     $ids = $query->condition($target)->execute();
     return $ids ? $storage->loadMultiple($ids) : [];
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getUnreadFor(AccountInterface $user): array {
+    $visible = $this->getVisibleFor($user);
+    if (!$visible) {
+      return [];
+    }
+    $read = $this->database->select(self::READ_TABLE, 'r')
+      ->fields('r', ['notification_id'])
+      ->condition('r.uid', $user->id())
+      ->condition('r.notification_id', array_keys($visible), 'IN')
+      ->execute()
+      ->fetchCol();
+    return array_diff_key($visible, array_flip($read));
   }
 
   /**

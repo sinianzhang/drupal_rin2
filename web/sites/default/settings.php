@@ -893,6 +893,7 @@ if (getenv('IS_DDEV_PROJECT') == 'true' && file_exists(__DIR__ . '/settings.ddev
  *
  * Keep this code block at the end of this file to take full effect.
  */
+// e.g. 'ddev drush cr' is not needed
 $loadLocalSettings = false;
 if ($loadLocalSettings) {
   if (file_exists($app_root . '/' . $site_path . '/settings.local.php')) {

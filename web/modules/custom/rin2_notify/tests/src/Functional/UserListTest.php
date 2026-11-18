@@ -157,7 +157,7 @@ final class UserListTest extends BrowserTestBase {
   }
 
   /**
-   * Impersonate is offered for other active users and lands on the front page.
+   * Impersonate is offered for other active users and lands on /home.
    */
   public function testImpersonate(): void {
     $this->drupalLogin($this->admin);
@@ -169,7 +169,7 @@ final class UserListTest extends BrowserTestBase {
 
     $this->clickImpersonate($this->bob);
     $this->assertSession()->statusCodeEquals(200);
-    $this->assertSession()->addressEquals('/node');
+    $this->assertSession()->addressEquals('/home');
     $this->assertSession()->pageTextContains('You are now masquerading as');
     $this->drupalGet('/user');
     $this->assertSession()->addressEquals('/user/' . $this->bob->id());

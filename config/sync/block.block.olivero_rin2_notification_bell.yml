@@ -1,0 +1,20 @@
+uuid: 17ce0a31-f3ce-483c-a6a9-05c1be5d36c6
+langcode: en
+status: true
+dependencies:
+  module:
+    - rin2_notify
+  theme:
+    - olivero
+id: olivero_rin2_notification_bell
+theme: olivero
+region: primary_menu
+weight: -10
+provider: null
+plugin: rin2_notification_bell
+settings:
+  id: rin2_notification_bell
+  label: Notifications
+  label_display: '0'
+  provider: rin2_notify
+visibility: {  }

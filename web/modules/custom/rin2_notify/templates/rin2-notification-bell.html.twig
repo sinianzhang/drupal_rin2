@@ -1,0 +1,49 @@
+{#
+/**
+ * @file
+ * Notification bell with unread badge and list panel.
+ *
+ * Available variables:
+ * - enabled: whether the user has on-screen notifications switched on.
+ * - count: number of unread notifications.
+ * - items: unread notifications, newest first (read ones are not shown,
+ *   notifications are one-time), each with:
+ *   - type: type machine name (marketing, invoices, system).
+ *   - type_label: type label.
+ *   - message: short text.
+ *   - expires: formatted expiry date.
+ *   - url: mark-as-read URL.
+ * - open: whether the panel starts open.
+ *
+ * The wrapper's data-rin2-bell attribute is the target of AJAX replacements.
+ */
+#}
+<div class="rin2-bell{{ enabled ? '' : ' rin2-bell--off' }}" data-rin2-bell>
+  {% if enabled %}
+    <details class="rin2-bell__details"{{ open ? ' open' }}>
+      <summary class="rin2-bell__toggle">
+        {% include '@rin2_notify/rin2-notification-bell-icon.html.twig' %}
+        <span class="visually-hidden">{{ 'Notifications'|t }}</span>
+        {% if count > 0 %}
+          <span class="rin2-bell__badge" data-rin2-unread="{{ count }}">{{ count }}<span class="visually-hidden"> {{ 'unread'|t }}</span></span>
+        {% endif %}
+      </summary>
+      <div class="rin2-bell__panel">
+        {% if items %}
+          <ul class="rin2-bell__list">
+            {% for id, item in items %}
+              <li class="rin2-bell__item" data-rin2-notification="{{ id }}">
+                <span class="rin2-bell__type rin2-bell__type--{{ item.type }}">{{ item.type_label }}</span>
+                <span class="rin2-bell__message">{{ item.message }}</span>
+                <span class="rin2-bell__expires">{{ 'Expires @date'|t({'@date': item.expires}) }}</span>
+                <a href="{{ item.url }}" class="use-ajax rin2-bell__link" rel="nofollow">{{ 'Read and Close'|t }}</a>
+              </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <p class="rin2-bell__empty">{{ 'You have no unread notifications.'|t }}</p>
+        {% endif %}
+      </div>
+    </details>
+  {% endif %}
+</div>

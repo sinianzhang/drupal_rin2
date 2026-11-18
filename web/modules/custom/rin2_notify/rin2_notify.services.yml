@@ -5,3 +5,7 @@ services:
   rin2_notify.manager:
     class: Drupal\rin2_notify\NotificationManager
   Drupal\rin2_notify\NotificationManagerInterface: '@rin2_notify.manager'
+
+  rin2_notify.bell:
+    class: Drupal\rin2_notify\NotificationBell
+  Drupal\rin2_notify\NotificationBell: '@rin2_notify.bell'

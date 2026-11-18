@@ -89,7 +89,7 @@ How to use this file: work through the steps in order. Each step ends with **Don
   - `markRead($notification, $user)` (idempotent; does nothing for users with `notifications_enabled = 0`, so they never get a row in `rin2_notification_read`)
   - `isRead($notification, $user)`
   - `isVisibleTo($notification, $user)` (added: used by `markRead()`, and by the Step 8 route for access)
-- [x] Cache tags/contexts so counters update after posting or reading: `getCacheableMetadataFor($user)` → context `user`; tags `rin2_notification_list` (core, any post/edit/delete), `user:UID` (notifications switched on/off), `rin2_notification_read:UID` (invalidated by `markRead()` on first read); max-age = seconds until the next visible notification expires. Global tag `rin2_notification_read` for admin read counts, also invalidated by the delete cleanups
+- [x] Cache tags/contexts so counters update after posting or reading: `getCacheableMetadataFor($user)` → context `user`; tags `rin2_notification_list` (core, any post/edit/delete), `user:UID` (notifications switched on/off), `rin2_notification_read:UID` (invalidated by `markRead()` on first read); max-age 0 while notifications are enabled (expiry invalidates no tag; simpler than computing the next expiry, changed 2026-11-18). Global tag `rin2_notification_read` for admin read counts, also invalidated by the delete cleanups
 - [x] Permissions: `administer rin2 notifications`, `view own rin2 notifications` (`rin2_notify.permissions.yml`)
 
 **Done when:** ✅ kernel test `tests/src/Kernel/NotificationManagerTest.php` (9 tests, 112 assertions) proves visibility rules (expired hidden, targeted vs all, "for all" incl. later users), read/unread counts, idempotent `markRead()`, notifications-off rules (D5), delete cleanup, cache metadata + tag invalidation, and fresh-install NOT NULL on `notifications_enabled`; ✅ phpcs clean; ✅ `updatedb:status` clean.
@@ -135,13 +135,17 @@ How to use this file: work through the steps in order. Each step ends with **Don
 
 ## Step 8: User home page + bell
 
-- [ ] Route `/home` (logged-in users): simple welcome page
-- [ ] Block `NotificationBellBlock` placed in the Olivero header: bell icon + unread badge
-- [ ] Click the badge to open a dropdown/panel listing visible notifications (unread in bold, type label, expiry)
-- [ ] Click a notification: POST to `/rin2/notification/{id}/read` (CSRF token) → marks it read, updates the badge without a page reload (Drupal AJAX or small vanilla JS)
-- [ ] Respect `notifications_enabled`: when off, the bell is hidden **(decide: hidden, or shown greyed with "notifications off")**
+**Decisions (2026-11-17):** `/home` becomes the site front page (anonymous → login form, back to `/home` after login); the bell is shown **in the header of every page, before "Home"** (changed the same day; first only on `/home`); D2: greyed bell + "notifications are off" hint; mark-read via the **Drupal AJAX framework** (`use-ajax` links, `AjaxResponse` re-renders the bell), no custom JS.
 
-**Done when:** while impersonating a test user, the badge count equals the users-list count, and clicking items lowers it to 0.
+- [x] Route `/home` (`HomeController`): welcome page for logged-in users, anonymous → `/user/login?destination=/home`; site front page (`system.site` `page.front`) set to `/home`; Impersonate lands on `/home`
+- [x] Block `NotificationBellBlock` (`rin2_notification_bell`, needs `view own rin2 notifications`) placed in the Olivero `primary_menu` region with weight -10, before the main menu (`block.block.olivero_rin2_notification_bell`), on every page: bell icon + unread badge. Markup built by service `NotificationBell` (template `rin2-notification-bell.html.twig`), shared by the block and the AJAX response; cache metadata from `getCacheableMetadataFor()` + `timezone`
+- [x] Click the bell to open a panel (`<details>`, no JS) listing the **unread** notifications only, newest first (type label, message, expiry, and one "Read and Close" link per item; the rest of the item is plain text). Notifications are one-time: once read they disappear from the bell (`NotificationManager::getUnreadFor()`, decided 2026-11-17). Block wrapper `.block-rin2-notification-bell` has a 3rem right margin to "Home"
+- [x] Click an unread notification: `use-ajax` link to `/rin2/notification/{id}/read` (`MarkReadController`, CSRF token, access only while the notification is visible to the user) → marks it read, `ReplaceCommand` swaps in the re-rendered bell (panel stays open); without JS it redirects to `/home` (change 2026-11-18: no longer back to the referer page)
+- [x] Respect `notifications_enabled`: when off, the bell is shown greyed (D2)
+- [x] Permission `view own rin2 notifications` granted to `authenticated` (`user.role.authenticated`)
+
+**Done when:** while impersonating a test user, the badge count equals the users-list count, and clicking items lowers it to 0. ✅ alice's badge on `/home` shows 1 = users list; lowering to 0 is covered by `HomePageTest`. Still to do by hand: click through in the browser (the AJAX swap itself is not run by the tests, which have no JS).
+**Tests:** `tests/src/Functional/HomePageTest.php` (anonymous → login → back to /home; bell count, items, order, expired/other users hidden, read ones removed from the list, bell CSS + AJAX library attached, bell on other pages too, not for anonymous; without JS to /home from any page; mark read without JS and via the `drupal_ajax` response; D2 greyed bell; access: no/wrong token, expired since page load, notifications switched off, anonymous). `UserListTest::testImpersonate` now expects `/home`.
 **Commits:** `Add user home page`, `Add notification bell block with unread badge`, `Mark notifications as read via AJAX`
 
 ## Step 9: User notification settings form
@@ -189,7 +193,7 @@ How to use this file: work through the steps in order. Each step ends with **Don
 | # | Question | Recommendation | Your choice |
 |---|---|---|---|
 | D1 | Unread-count list: Views plugin or custom controller? | Views (filters for free) | **Custom controller** (2026-11-15), same pattern and client-side filters as the Step 6 list |
-| D2 | Bell when notifications are switched off | Hide bell entirely | |
+| D2 | Bell when notifications are switched off | Hide bell entirely | **Greyed bell** (2026-11-17): no list, no badge |
 | D3 | Default phone region for numbers without `+` | IT (spec author looks Italian) or DE | |
 | D4 | "For all" notifications: also visible to users created **after** posting? | Yes (simplest, matches "for all") | **Yes.** "For all" means everybody, including users created later (except users with notifications off, see D5) |
 | D5 | Does turning notifications off also exclude the user from unread counts in the admin list? | No: count stays, setting only affects on-screen display | **Yes.** `notifications_enabled = 0` → user gets no notifications at runtime: `getVisibleFor()` returns none, `countUnreadFor()` returns 0. Re-enabling shows still-unexpired notifications again (runtime check, nothing stored) |
@@ -215,3 +219,4 @@ How to use this file: work through the steps in order. Each step ends with **Don
 | 2026-11-15 | 6 | Several recipients per notification (`target_uid` unlimited, own table `rin2_notification__target_uid`, update 11005); functional tests fixed for it (20 tests green) |
 | 2026-11-15 | 7 ✅ | D1 decided (custom controller). Users list `/admin/people/notifications` with batch unread counts, client-side filters (name/email, notifications, has unread, status), Impersonate (→ front page until Step 8) and Edit settings (→ user edit form until Step 9); 26 tests green. Pending: manual browser check of the filters |
 | 2026-11-17 | 6 | "Notifications" added to the Navigation sidebar as a child of Content (menu `content`, parent `navigation.content`), so Content opens a flyout; the `system.admin_content` child link stays for the classic Toolbar |
+| 2026-11-17 | 8 ✅ | D2 decided (greyed bell). `/home` as front page, bell block in the header of every page before "Home" (Olivero `primary_menu`), mark-read via Drupal AJAX (no own JS); HomePageTest 7 tests green; read notifications no longer listed (one-time), kernel `testGetUnreadFor()`. Pending: manual browser check. Not from Step 8: `UserListTest::testFilterMarkup` still expects the filters removed in `e6afc64` and fails |

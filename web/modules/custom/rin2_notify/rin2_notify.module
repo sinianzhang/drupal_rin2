@@ -16,6 +16,23 @@ use Drupal\rin2_notify\NotificationManagerInterface;
 use Drupal\rin2_notify\Rin2UserStorageSchema;
 
 /**
+ * Implements hook_theme().
+ */
+function rin2_notify_theme(): array {
+  return [
+    // Bell with unread badge and list panel, see NotificationBell::build().
+    'rin2_notification_bell' => [
+      'variables' => [
+        'enabled' => TRUE,
+        'count' => 0,
+        'items' => [],
+        'open' => FALSE,
+      ],
+    ],
+  ];
+}
+
+/**
  * Implements hook_entity_type_alter().
  */
 function rin2_notify_entity_type_alter(array &$entity_types): void {

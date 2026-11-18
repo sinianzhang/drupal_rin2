@@ -148,11 +148,6 @@ final class NotificationManagerTest extends KernelTestBase {
     $this->assertTrue($this->manager->isVisibleTo($notification, $this->bob));
     $this->assertFalse($this->manager->isVisibleTo($notification, $carol));
     $this->assertFalse($this->manager->markRead($notification, $carol));
-
-    // Max-age follows only notifications the user can see.
-    $this->post('soon for carol', expires_in: 30, target: $carol);
-    $this->assertSame(3600, $this->manager->getCacheableMetadataFor($this->alice)->getCacheMaxAge());
-    $this->assertSame(30, $this->manager->getCacheableMetadataFor($carol)->getCacheMaxAge());
   }
 
   /**
@@ -184,11 +179,38 @@ final class NotificationManagerTest extends KernelTestBase {
     $this->assertSame(1, $this->manager->countUnreadFor($this->bob));
     $this->assertSame(1, $this->readRowCount(), 'Marking twice stores one row.');
 
-    // Read notifications stay visible; only the count changes.
+    // Read notifications stay visible (admin rules, isVisibleTo()); the
+    // one-time list for the user (getUnreadFor()) drops them.
     $this->assertCount(2, $this->manager->getVisibleFor($this->alice));
+    $this->assertSame([(int) $for_alice->id()], array_keys($this->manager->getUnreadFor($this->alice)));
+    $this->assertSame([(int) $for_all->id()], array_keys($this->manager->getUnreadFor($this->bob)));
 
     $this->manager->markRead($for_alice, $this->alice);
     $this->assertSame(0, $this->manager->countUnreadFor($this->alice));
+    $this->assertSame([], $this->manager->getUnreadFor($this->alice));
+  }
+
+  /**
+   * The unread list keeps the visibility order and matches the count.
+   */
+  public function testGetUnreadFor(): void {
+    $old = $this->post('old for all', age: 300);
+    $this->post('for alice', target: $this->alice, age: 200);
+    $this->post('new for all', age: 100);
+    $this->post('for bob', target: $this->bob);
+    $this->post('expired', expires_in: -1);
+    $this->manager->markRead($old, $this->alice);
+
+    $messages = array_values(array_map(
+      static fn (NotificationInterface $n): string => $n->getMessage(),
+      $this->manager->getUnreadFor($this->alice),
+    ));
+    $this->assertSame(['new for all', 'for alice'], $messages);
+    $this->assertSame($this->manager->countUnreadFor($this->alice), count($messages));
+    $this->assertSame([], $this->manager->getUnreadFor(User::getAnonymousUser()));
+
+    $this->alice->set('notifications_enabled', FALSE)->save();
+    $this->assertSame([], $this->manager->getUnreadFor($this->alice));
   }
 
   /**
@@ -241,7 +263,7 @@ final class NotificationManagerTest extends KernelTestBase {
   }
 
   /**
-   * Cache metadata varies per user and expires with the next notification.
+   * Cache metadata varies per user; not cached while notifications are on.
    */
   public function testCacheableMetadata(): void {
     $this->post('soon', expires_in: 60);
@@ -255,10 +277,9 @@ final class NotificationManagerTest extends KernelTestBase {
       'user:' . $this->alice->id(),
       'rin2_notification_read:' . $this->alice->id(),
     ], $metadata->getCacheTags());
-    $this->assertSame(60, $metadata->getCacheMaxAge());
-    $this->assertSame(30, $this->manager->getCacheableMetadataFor($this->bob)->getCacheMaxAge());
+    $this->assertSame(0, $metadata->getCacheMaxAge());
 
-    // Nothing visible: no time-based expiry needed.
+    // Nothing visible: no time-based expiry, the tags are enough.
     $this->alice->set('notifications_enabled', FALSE)->save();
     $this->assertSame(Cache::PERMANENT, $this->manager->getCacheableMetadataFor($this->alice)->getCacheMaxAge());
   }

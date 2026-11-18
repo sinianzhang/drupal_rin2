@@ -1,0 +1,115 @@
+/**
+ * @file
+ * Notification bell, badge and panel. Final styling follows in Step 10.
+ */
+
+.rin2-bell {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Block wrapper (#block-olivero-rin2-notification-bell in Olivero): space to
+ * the main menu ("Home") that follows it in the header. */
+.block-rin2-notification-bell {
+  margin-inline-end: 3rem;
+}
+
+.rin2-bell__toggle {
+  position: relative;
+  display: inline-flex;
+  padding: 0.25rem;
+  cursor: pointer;
+  list-style: none;
+}
+
+/* Hide the default <details> marker. */
+.rin2-bell__toggle::-webkit-details-marker {
+  display: none;
+}
+
+.rin2-bell__badge {
+  position: absolute;
+  top: -0.25rem;
+  right: -0.5rem;
+  min-width: 1.25rem;
+  padding: 0 0.3rem;
+  border-radius: 1rem;
+  background: #d72222;
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1.25rem;
+  text-align: center;
+}
+
+.rin2-bell__panel {
+  position: absolute;
+  z-index: 100;
+  top: 100%;
+  right: 0;
+  width: 22rem;
+  max-width: 90vw;
+  max-height: 70vh;
+  overflow-y: auto;
+  border: 1px solid #d3d4d9;
+  border-radius: 0.25rem;
+  background: #fff;
+  box-shadow: 0 0.25rem 1rem rgba(0, 0, 0, 0.15);
+}
+
+.rin2-bell__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rin2-bell__item {
+  margin: 0;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #e6e7eb;
+}
+
+.rin2-bell__item:last-child {
+  border-bottom: 0;
+}
+
+/* "Read and close": the only link in an item. */
+.rin2-bell__link {
+  display: inline-block;
+  margin-block-start: 0.25rem;
+  font-size: 0.8rem;
+}
+
+.rin2-bell__type,
+.rin2-bell__message,
+.rin2-bell__expires {
+  display: block;
+}
+
+.rin2-bell__type,
+.rin2-bell__expires {
+  font-size: 0.8rem;
+  font-weight: 400;
+  color: #545560;
+}
+
+/* Only unread notifications are listed. */
+.rin2-bell__message {
+  font-weight: 700;
+}
+
+.rin2-bell__empty {
+  margin: 0;
+  padding: 1rem;
+}
+
+/* D2: notifications switched off. */
+.rin2-bell--off {
+  opacity: 0.5;
+}
+
+.rin2-bell__off {
+  font-size: 0.8rem;
+}

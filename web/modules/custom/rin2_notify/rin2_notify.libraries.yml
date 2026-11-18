@@ -12,6 +12,15 @@ simple_datatables:
     component:
       js/vendor/simple-datatables/style.css: {}
 
+# Notification bell on the user home page. core/drupal.ajax handles the
+# "use-ajax" mark-read links; the panel is a <details> element, so no own JS.
+bell:
+  css:
+    component:
+      css/bell.css: {}
+  dependencies:
+    - core/drupal.ajax
+
 # Client-side filters, sorting and paging for admin tables.
 admin_table:
   js:
