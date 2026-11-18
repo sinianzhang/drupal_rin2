@@ -179,14 +179,19 @@ final class UserListTest extends BrowserTestBase {
   }
 
   /**
-   * Edit settings opens the user form and returns to the list.
+   * Edit settings opens the notification settings form and returns to the list.
    */
   public function testEditSettings(): void {
     $this->drupalLogin($this->admin);
     $this->drupalGet('/admin/people/notifications');
     $link = $this->assertSession()->elementExists('xpath', '//table[@data-rin2-table="users"]//tr[td[1]//a[text()="bob"]]//a[text()="Edit settings"]');
-    $this->assertStringContainsString('/user/' . $this->bob->id() . '/edit', $link->getAttribute('href'));
+    $this->assertStringContainsString('/user/' . $this->bob->id() . '/notification-settings', $link->getAttribute('href'));
     $this->assertStringContainsString('destination=', $link->getAttribute('href'));
+
+    $link->click();
+    $this->submitForm(['phone' => '+41 79 123 45 67'], 'Save');
+    $this->assertSession()->addressEquals('/admin/people/notifications');
+    $this->assertSame('+41791234567', $this->row($this->bob)['phone']);
   }
 
   /**

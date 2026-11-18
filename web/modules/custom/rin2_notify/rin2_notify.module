@@ -75,11 +75,13 @@ function rin2_notify_user_base_field_definitions(): array {
     ->setDisplayConfigurable('form', TRUE)
     ->setDisplayConfigurable('view', TRUE);
 
-  // Nullable column. Stored in E.164 format, e.g. +393331234567.
+  // Nullable column. Stored in E.164 format, e.g. +393331234567. The
+  // constraint is not part of the storage, so adding it needs no update.
   $fields['phone'] = BaseFieldDefinition::create('string')
-    ->setLabel(new TranslatableMarkup('Mobile phone'))
+    ->setLabel(new TranslatableMarkup('Phone'))
     ->setDescription(new TranslatableMarkup('Mobile number in international format.'))
     ->setSetting('max_length', 32)
+    ->addConstraint('Rin2MobilePhone')
     ->setDisplayConfigurable('form', TRUE)
     ->setDisplayConfigurable('view', TRUE);
 

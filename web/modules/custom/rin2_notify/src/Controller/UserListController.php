@@ -113,8 +113,7 @@ final class UserListController extends ControllerBase {
         ]),
       ];
     }
-    // @todo Step 9: link to the notification settings form instead.
-    $edit = $user->toUrl('edit-form');
+    $edit = Url::fromRoute('rin2_notify.notification_settings', ['user' => $user->id()]);
     if ($edit->access()) {
       $operations['edit'] = [
         'title' => $this->t('Edit settings'),

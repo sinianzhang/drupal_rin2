@@ -127,7 +127,7 @@ How to use this file: work through the steps in order. Each step ends with **Don
 - [x] Admin page `/admin/people/notifications` (instead of `/admin/rin2/users`: "Notifications" tab under People, like the Content tab in Step 6; menu link under People), custom controller `UserListController`: name (links to the user), email, phone, notifications on/off, **unread count**, status (active/blocked), operations. All users except anonymous, sorted by name. Permission `administer rin2 notifications`
 - [x] Unread count (D1: custom controller, same pattern as Step 6): `NotificationManager::getUnreadCounts($uids)`, same rules as `countUnreadFor()` (incl. D5: 0 when notifications are off) in 3 queries for the whole list instead of one per user; cache: `user_list`, list + read tags, max-age until the next notification expires
 - [x] Filters (client-side, `UserFilterForm` + `js/admin-table.js`): name or email contains (searches 2 columns: `data-rin2-column="0,1"`), notifications on/off, "has unread" (new matcher `positive`: yes = count > 0), status active/blocked, Reset; sorting (unread numeric via `data-order`; operations column not sortable via `th[data-rin2-sortable="false"]`) and paging
-- [x] Row actions: **Impersonate** (masquerade link with CSRF token, only where masquerade allows it: not yourself, not while masquerading, and not for blocked users) → front page for now (**@todo Step 8:** `/home`); **Edit settings** → core user edit form with destination back to the list (**@todo Step 9:** settings form). `masquerade` added to the module dependencies
+- [x] Row actions: **Impersonate** (masquerade link with CSRF token, only where masquerade allows it: not yourself, not while masquerading, and not for blocked users) → front page for now (**@todo Step 8:** `/home`); **Edit settings** → core user edit form with destination back to the list (Step 9: now opens the notification settings form). `masquerade` added to the module dependencies
 
 **Done when:** ✅ counts match `countUnreadFor()` for the hand-made users (admin 1, alice 1, bob 2, tom 2), ✅ Impersonate switches to the user and lands on the front page (Step 8 changes it to the home page).
 **Tests:** kernel `testGetUnreadCounts()` (batch equals single count: targeted, several recipients, read, expired, notifications off, anonymous/unknown uid); functional `tests/src/Functional/UserListTest.php` (row contents, blocked/off users, filter markup, impersonate links + switching, edit link, access). 26 tests green. JS filtering itself: check by hand in the browser.
@@ -148,14 +148,17 @@ How to use this file: work through the steps in order. Each step ends with **Don
 **Tests:** `tests/src/Functional/HomePageTest.php` (anonymous → login → back to /home; bell count, items, order, expired/other users hidden, read ones removed from the list, bell CSS + AJAX library attached, bell on other pages too, not for anonymous; without JS to /home from any page; mark read without JS and via the `drupal_ajax` response; D2 greyed bell; access: no/wrong token, expired since page load, notifications switched off, anonymous). `UserListTest::testImpersonate` now expects `/home`.
 **Commits:** `Add user home page`, `Add notification bell block with unread badge`, `Mark notifications as read via AJAX`
 
-## Step 9: User notification settings form
+## Step 9: User notification settings form ✅
 
-- [ ] Route `/user/{user}/notification-settings` (own account, or admin)
-- [ ] Fields: on-screen notifications on/off, email (unique, valid), phone
-- [ ] Phone validation with libphonenumber: must parse, be valid, and be type **MOBILE** (or FIXED_LINE_OR_MOBILE); stored in E.164 format (`+393331234567`). Default region **(decide: IT? DE?)** for numbers typed without `+`
-- [ ] Link from the user home page and the users list
+**Decisions (2026-11-18):** D3: **no default region**, numbers must start with `+` and the country code; accepted types `MOBILE` + `FIXED_LINE_OR_MOBILE`; **no current password** to change the email (works while an admin impersonates the user; core's `ProtectedUserFieldConstraint` is skipped in this form only).
 
-**Done when:** a valid mobile number saves, and a landline or garbage number is rejected with a clear message.
+- [x] Route `/user/{user}/notification-settings` (`NotificationSettingsForm`, title "Notification settings", tab on the user page). Access: own account (any logged-in user), other accounts only with core's `administer users` (changing someone's email allows an account takeover via password reset, so `administer rin2 notifications` alone is not enough)
+- [x] Fields: on-screen notifications on/off, email (required; format + uniqueness from core's user constraints), phone (optional, empty = NULL). Validation runs through the user entity (`$user->validate()`), errors mapped to the form fields
+- [x] Phone validation with libphonenumber: constraint `Rin2MobilePhone` on the `phone` base field (applies to every save path, like `Rin2ExpiresInFuture`): needs `+`, must parse, be valid and be `MOBILE` or `FIXED_LINE_OR_MOBILE`, stored as E.164. The form normalizes valid input first (`+41 79 123 45 67` → `+41791234567`); landlines, garbage and numbers without `+` get a clear message
+- [x] Links: "Notification settings" on the home page; "Edit settings" in the users list now opens this form (destination back to the list)
+
+**Done when:** ✅ a valid mobile number saves (as E.164), ✅ a landline or garbage number is rejected with a clear message.
+**Tests:** kernel `tests/src/Kernel/MobilePhoneConstraintTest.php` (valid CH/IT/DE/US numbers and empty; CH/DE landline, no `+`, letters, too short, not E.164; `normalizePhone()`); functional `tests/src/Functional/NotificationSettingsTest.php` (save incl. E.164 + clearing the phone, validation messages for phone and email incl. duplicate, access: anonymous/other user/uid 0/notification admin 403, `administer users` 200, home page link); `UserListTest::testEditSettings` follows the link and saves. 51 tests, only the old `testFilterMarkup` fails.
 **Commits:** `Add user notification settings form`, `Validate phone as mobile number with libphonenumber`
 
 ## Step 10: UI polish
@@ -194,7 +197,7 @@ How to use this file: work through the steps in order. Each step ends with **Don
 |---|---|---|---|
 | D1 | Unread-count list: Views plugin or custom controller? | Views (filters for free) | **Custom controller** (2026-11-15), same pattern and client-side filters as the Step 6 list |
 | D2 | Bell when notifications are switched off | Hide bell entirely | **Greyed bell** (2026-11-17): no list, no badge |
-| D3 | Default phone region for numbers without `+` | IT (spec author looks Italian) or DE | |
+| D3 | Default phone region for numbers without `+` | IT (spec author looks Italian) or DE; later CH (spec is from peoplefone, Zürich) | **None** (2026-11-18): numbers must start with `+` and the country code |
 | D4 | "For all" notifications: also visible to users created **after** posting? | Yes (simplest, matches "for all") | **Yes.** "For all" means everybody, including users created later (except users with notifications off, see D5) |
 | D5 | Does turning notifications off also exclude the user from unread counts in the admin list? | No: count stays, setting only affects on-screen display | **Yes.** `notifications_enabled = 0` → user gets no notifications at runtime: `getVisibleFor()` returns none, `countUnreadFor()` returns 0. Re-enabling shows still-unexpired notifications again (runtime check, nothing stored) |
 | D6 | Push to GitHub in addition to the tarball? | Yes, private repo | |
@@ -220,3 +223,5 @@ How to use this file: work through the steps in order. Each step ends with **Don
 | 2026-11-15 | 7 ✅ | D1 decided (custom controller). Users list `/admin/people/notifications` with batch unread counts, client-side filters (name/email, notifications, has unread, status), Impersonate (→ front page until Step 8) and Edit settings (→ user edit form until Step 9); 26 tests green. Pending: manual browser check of the filters |
 | 2026-11-17 | 6 | "Notifications" added to the Navigation sidebar as a child of Content (menu `content`, parent `navigation.content`), so Content opens a flyout; the `system.admin_content` child link stays for the classic Toolbar |
 | 2026-11-17 | 8 ✅ | D2 decided (greyed bell). `/home` as front page, bell block in the header of every page before "Home" (Olivero `primary_menu`), mark-read via Drupal AJAX (no own JS); HomePageTest 7 tests green; read notifications no longer listed (one-time), kernel `testGetUnreadFor()`. Pending: manual browser check. Not from Step 8: `UserListTest::testFilterMarkup` still expects the filters removed in `e6afc64` and fails |
+| 2026-11-18 | 8 | Bell not cached any more (max-age 0 instead of "until the next expiry") |
+| 2026-11-18 | 9 ✅ | D3 decided (no default region, `+` required). Notification settings form `/user/{user}/notification-settings` (own account or `administer users`, no current password), `Rin2MobilePhone` constraint (libphonenumber, MOBILE + FIXED_LINE_OR_MOBILE, E.164), links from home page and users list; kernel + functional tests green (except the old `testFilterMarkup`). Pending: manual browser check |

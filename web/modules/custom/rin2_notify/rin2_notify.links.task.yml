@@ -11,3 +11,10 @@ rin2_notify.user_list:
   route_name: rin2_notify.user_list
   base_route: entity.user.collection
   weight: 20
+
+# "Notification settings" tab on the user page, next to View/Edit.
+rin2_notify.notification_settings:
+  title: 'Notification settings'
+  route_name: rin2_notify.notification_settings
+  base_route: entity.user.canonical
+  weight: 20

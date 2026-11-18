@@ -48,3 +48,18 @@ rin2_notify.user_list:
     _permission: 'administer rin2 notifications'
   options:
     _admin_route: true
+
+# Notification settings: on-screen switch, email, phone. Own account, or any
+# account with "administer users" (see NotificationSettingsForm::access()).
+rin2_notify.notification_settings:
+  path: '/user/{user}/notification-settings'
+  defaults:
+    _form: '\Drupal\rin2_notify\Form\NotificationSettingsForm'
+    _title: 'Notification settings'
+  requirements:
+    _custom_access: '\Drupal\rin2_notify\Form\NotificationSettingsForm::access'
+    user: \d+
+  options:
+    parameters:
+      user:
+        type: entity:user
